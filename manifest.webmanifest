@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Ashfall Survivors",
+  "short_name": "Ashfall",
+  "description": "A maze-climbing survivor game: fight through the maze, beat the boss, climb the ladder.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#152521",
+  "theme_color": "#152521",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
