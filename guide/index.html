@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:400 14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Ashfall Survivors Field Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus+SC&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a fixed contents rail on desktop, a scrolling tab strip on phones; one section visible at a time, chosen by the #hash; search shows matches from every section. */
+:root{
+  --bg:#e8eeea; --panel:#f6f9f6; --ink:#16282a; --muted:#4d6062; --line:#b7c6c0;
+  --brass:#8a6420; --ember:#b4481c; --teal:#1f5f63; --teal-soft:#d3e4e0; --good:#2d7a45; --bad:#a63a2a;
+  --display:'Marcellus SC','Trajan Pro',Georgia,serif; --body:'Source Sans 3','Segoe UI',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1c1e; --panel:#16282a; --ink:#e3e9e0; --muted:#9db0a8; --line:#2c4447;
+  --brass:#e7ca86; --ember:#ee8a52; --teal:#6cc0b8; --teal-soft:#1d3a3c; --good:#7fd39a; --bad:#f0907e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1c1e; --panel:#16282a; --ink:#e3e9e0; --muted:#9db0a8; --line:#2c4447;
+  --brass:#e7ca86; --ember:#ee8a52; --teal:#6cc0b8; --teal-soft:#1d3a3c; --good:#7fd39a; --bad:#f0907e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--body);padding-block:0}
+a{color:var(--teal)}
+.shell{display:grid;grid-template-columns:230px minmax(0,1fr);gap:0;max-width:1180px;margin:0 auto;min-height:100vh}
+nav.rail{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;padding:28px 18px 28px max(16px,env(safe-area-inset-left,0px));border-right:1px solid var(--line)}
+.brand{font:400 22px/1.15 var(--display);letter-spacing:.03em;color:var(--brass);margin:0 0 4px}
+.brand small{display:block;font:600 11px/1.3 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.rail ul{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rail a{display:block;padding:8px 10px;border-radius:4px;text-decoration:none;color:var(--ink);font-weight:600}
+.rail a[aria-current="page"]{background:var(--teal-soft);color:var(--ink);box-shadow:inset 3px 0 0 var(--brass)}
+.rail a:hover{background:var(--teal-soft)}
+.play{display:inline-block;margin-top:22px;padding:10px 14px;background:var(--ember);color:#fff;font-weight:700;text-decoration:none;border-radius:4px}
+main{padding:28px max(16px,env(safe-area-inset-right,0px)) 64px 36px;min-width:0}
+.search{display:block;width:100%;max-width:520px;padding:10px 12px;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-bottom:26px}
+.search:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+section.page{display:none}
+section.page.on{display:block}
+body.searching section.page{display:block}
+h1{font:400 clamp(30px,4.6vw,44px)/1.1 var(--display);letter-spacing:.02em;margin:0 0 10px;text-wrap:balance}
+h2{font:400 24px/1.2 var(--display);letter-spacing:.02em;margin:34px 0 10px;color:var(--brass);text-wrap:balance}
+h3{font:700 16px/1.3 var(--body);margin:0 0 4px}
+p{margin:0 0 12px;max-width:68ch}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+ul.plain{margin:0 0 14px;padding-left:20px;max-width:68ch}
+ul.plain li{margin:3px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin:12px 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;min-width:0}
+.card h3{font:400 20px/1.2 var(--display);letter-spacing:.02em;color:var(--brass)}
+.card .sub{color:var(--muted);font-size:14px;margin-bottom:8px}
+.stat{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{font:600 12px/1 var(--mono);padding:5px 7px;border-radius:3px;background:var(--teal-soft);color:var(--ink)}
+.chip.fire{background:color-mix(in srgb,var(--ember) 22%,var(--panel))}
+.chip.good{color:var(--good)} .chip.bad{color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+.tw{overflow-x:auto;margin:10px 0 18px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.k{font-weight:600;white-space:nowrap}
+.note{border-left:3px solid var(--brass);padding:6px 0 6px 14px;margin:14px 0;color:var(--muted);max-width:68ch}
+.entry[hidden]{display:none!important}
+.empty{color:var(--muted);padding:20px 0}
+kbd{font:600 12px var(--mono);padding:2px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:3px;background:var(--panel)}
+.evo{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px 14px}
+.evo div{padding:6px 0;border-bottom:1px solid var(--line)}
+.evo b{display:block}
+footer{margin-top:44px;color:var(--muted);font-size:14px}
+.tabs{display:none}
+@media (max-width:820px){
+  .shell{display:block}
+  nav.rail{position:static;height:auto;border:0;border-bottom:1px solid var(--line);padding:16px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+  .rail ul{flex-direction:row;overflow-x:auto;margin-top:12px;gap:4px;padding-bottom:6px}
+  .rail a{white-space:nowrap;padding:8px 12px}
+  .play{margin-top:12px}
+  main{padding:20px max(16px,env(safe-area-inset-right,0px)) 56px max(16px,env(safe-area-inset-left,0px))}
+}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--brass)}}
+</style>
+
+<div class="shell">
+<nav class="rail" aria-label="Contents">
+  <p class="brand">Ashfall Survivors<small>Field guide for new players</small></p>
+  <ul id="nav"></ul>
+  <a class="play" href="https://ringshark.github.io/ashfall-survivors-play/" target="_blank" rel="noopener">Play the game</a>
+</nav>
+<main>
+<input id="q" class="search" type="search" placeholder="Search the guide (try: Rage, Brakk, scrap, imbue)" aria-label="Search the guide" autocomplete="off">
+
+<section class="page" id="start" data-title="Start here">
+  <h1>Start here</h1>
+  <p class="lede">Ashfall Survivors is a top-down survival run. You pick a hero, fight through a maze of monsters, find the boss, and climb as many floors as you can. Everything you earn in a run is spent in the Town between floors.</p>
+
+  <h2>How a floor works</h2>
+  <ul class="plain">
+    <li>Every floor is a new maze with a <b>5:00 timer</b>. If it reaches 0:00 the climb ends.</li>
+    <li>Kill monsters. At the kill goal (115 on floor 1, 145 on floor 2, 180 on floor 3, then 35 more each floor) the boss door opens.</li>
+    <li>The boss room is <b>hidden</b>. You find it by walking into it or getting near its door. Once the door is open, look for it.</li>
+    <li>Beat the boss. A chest drops where it fell and an exit portal appears. Take the chest, then step into the exit.</li>
+    <li>You land in the Town: heal, repair, shop, then walk through the Gate for the next floor. Your level, skills and build carry on.</li>
+    <li>If you fall, the climb ends. You keep your gear (it wears down), your scrap, Skill Points and records.</li>
+  </ul>
+
+  <h2>Controls</h2>
+  <div class="tw"><table>
+    <tr><th>Action</th><th>Desktop</th><th>Phone or tablet</th></tr>
+    <tr><td class="k">Move</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrow keys</td><td>Left thumb stick</td></tr>
+    <tr><td class="k">Skills</td><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>, aim with the mouse</td><td>Three round buttons, bottom right</td></tr>
+    <tr><td class="k">Potion</td><td><kbd>Q</kbd></td><td>Flask button</td></tr>
+    <tr><td class="k">Call pets</td><td><kbd>R</kbd></td><td>Paw button (Necromancer, Tamer, Summoner)</td></tr>
+    <tr><td class="k">Big map</td><td><kbd>M</kbd></td><td>Tap the small map</td></tr>
+    <tr><td class="k">Pause</td><td><kbd>Esc</kbd></td><td>Pause button</td></tr>
+    <tr><td class="k">Town door</td><td><kbd>E</kbd> or <kbd>Enter</kbd> at a door</td><td>Tap the prompt</td></tr>
+  </table></div>
+  <p>Your basic attack fires by itself at the nearest monster. You steer, dodge and time your skills. Skills that need aiming (Shield Bash, Charge, Bone Wall and a few more) show an arrow while you hold the button and fire when you let go.</p>
+
+  <h2>Your first ten minutes</h2>
+  <ul class="plain">
+    <li>Collect the glowing XP gems. Each level-up gives you a choice of three cards.</li>
+    <li>Take a new skill early. Your first three level-ups always offer a new skill or a rank-up for one you have.</li>
+    <li>Use your potions. You get two per floor, and one press heals 30% of your max HP over 3 seconds.</li>
+    <li>Walls block arrows. Use corners as cover from archers.</li>
+    <li>Open the chests you find. They are the main way to get gear, but the dangerous ones wake monsters.</li>
+    <li>Your progress saves in your browser. Add the game to your home screen on a phone for a full-screen, app-like game.</li>
+  </ul>
+</section>
+
+<section class="page" id="heroes" data-title="Heroes">
+  <h1>Heroes</h1>
+  <p class="lede">Six heroes, each with its own way to fight. All of them start with one active skill and earn the rest by levelling up and unlocking skills at the Skill Shrine.</p>
+  <div class="grid" id="hero-grid"></div>
+  <div class="note">Hero names in game: Barbarian is Bigfoot, Necromancer is the Lich King, Mage is the Archmage, Ranger is the Elf, Animal Tamer is the Orc, Summoner is the Djinn.</div>
+</section>
+
+<section class="page" id="skills" data-title="Skills">
+  <h1>Skills and evolutions</h1>
+  <p class="lede">Each hero has six actives and seven passives. You start with one active. The Shrine sells the rest with Skill Points, and level-up cards put them in your hands.</p>
+  <ul class="plain">
+    <li>You carry <b>three actives</b> at a time. Picking a fourth lets you swap one out; the swapped skill loses its ranks for that climb.</li>
+    <li>Actives rank up to 3. The capstone active (the last one on each list) only appears from <b>level 8</b>.</li>
+    <li>At its top rank, a skill can <b>evolve</b> once per climb into one of two forms. The evolve screen shows both; NOT YET asks again next floor.</li>
+    <li>Shrine prices: first two actives 1 point, next two 2 points, capstone 3 points, each passive 1 point. Unlocks are permanent for that hero.</li>
+  </ul>
+  <div id="skill-blocks"></div>
+</section>
+
+<section class="page" id="floors" data-title="Floors and monsters">
+  <h1>Floors and monsters</h1>
+  <h2>The three realms</h2>
+  <div class="tw"><table>
+    <tr><th>Floors</th><th>Realm</th><th>Monsters you will meet</th></tr>
+    <tr><td class="k">1 to 3</td><td>Overgrown Ruins</td><td>Warriors, spearmen, archers, runners</td></tr>
+    <tr><td class="k">4 to 6</td><td>Sunken Crypt</td><td>Adds brutes and healers</td></tr>
+    <tr><td class="k">7 and up</td><td>Ash Fortress</td><td>Adds bombers: all four special types</td></tr>
+  </table></div>
+  <p>Each floor picks one look for its ordinary monsters (goblin, hound, zombie, cultist or imp), so a floor feels like one tribe. The look is cosmetic.</p>
+
+  <h2>Monster types</h2>
+  <div class="grid">
+    <div class="card entry"><h3>Warrior</h3><p>The common melee monster. Walks at you and hits on contact.</p></div>
+    <div class="card entry"><h3>Spearman</h3><p>Winds up, then charges in a straight line. Sidestep the charge.</p></div>
+    <div class="card entry"><h3>Archer</h3><p>Keeps its distance and shoots. Arrows stop at walls.</p></div>
+    <div class="card entry"><h3>Runner</h3><p>Fast, fragile, arrives in packs of three.</p></div>
+    <div class="card entry"><h3>Brute</h3><p>Slow and very tough. Resists knockback.</p></div>
+    <div class="card entry"><h3>Healer</h3><p>Heals other monsters around it in pulses and stays back. Kill it first.</p></div>
+    <div class="card entry"><h3>Bomber</h3><p>Runs at you and lights a fuse. Explodes when it dies, too, and hurts nearby monsters as well as you.</p></div>
+  </div>
+
+  <h2>The floor's element</h2>
+  <p>Every floor rolls one element (Fire, Ice, Lightning, Earth or Nature). Monsters take <b>+30% damage from that element</b>, and the floor shows a banner and a badge under the map. That element also brings floor hazards: fire vents, frost patches, lightning strikes, rockfall and spore pools. Hazards are telegraphed before they hurt.</p>
+  <p>Imbue cards let any hero use the element. An <b>Imbue</b> card makes your basic attacks carry it: Fire burns, Ice chills, Nature poisons, Lightning sometimes jumps to another monster, Earth knocks back and sometimes stuns. If your imbue matches the floor's element, you also get the +30%. Taking a new Imbue card replaces the old one for the climb.</p>
+
+  <h2>Chests in the maze</h2>
+  <p>Floors hold two or three side chests. Gear from them is kept only if you finish the floor.</p>
+  <div class="tw"><table>
+    <tr><th>Chest</th><th>What happens</th><th>Reward</th></tr>
+    <tr><td class="k">Plain</td><td>Nothing. The nearest one.</td><td>Mostly Common, sometimes Rare, rarely Epic. A little scrap.</td></tr>
+    <tr><td class="k">Guarded</td><td>A pack of monsters wakes up around it.</td><td>Rare or Epic, more scrap, and an extra reroll.</td></tr>
+    <tr><td class="k">Cursed</td><td>Calls a big wave.</td><td>Always Epic, the most scrap, and an extra reroll.</td></tr>
+  </table></div>
+  <p>The minimap shows a chest once you have explored its area.</p>
+</section>
+
+<section class="page" id="bosses" data-title="Bosses">
+  <h1>Bosses</h1>
+  <p class="lede">One boss waits on every floor, picked at random. All six hit hard on a telegraph you can dodge, and each drops a piece of its own gear set.</p>
+  <div class="grid" id="boss-grid"></div>
+  <div class="note">Resist means the boss takes half damage from that element. Weak means it takes 1.5 times. Bring the element it is weak to and avoid the one it resists.</div>
+  <ul class="plain">
+    <li>Most bosses have a <b>concussion meter</b>. Stuns and heavy hits fill it. When it fills, the boss is stunned for 2 seconds, then immune for 6.</li>
+    <li>Below 25% health most bosses enrage: faster, with more attacks.</li>
+    <li>Boss health and damage grow every floor you climb.</li>
+    <li>Once you have beaten a boss you can pick it as your target in the Trophy Hall, so every boss door brings that one.</li>
+  </ul>
+</section>
+
+<section class="page" id="town" data-title="The Town">
+  <h1>The Town</h1>
+  <p class="lede">A walled square between floors. Walk to a door and go in. The Town heals you, refills potions, and is where your gear and skills live.</p>
+  <div class="grid">
+    <div class="card entry"><h3>Blacksmith</h3><p>Repair worn gear with scrap (hammer taps restore durability), salvage unwanted pieces into scrap, and <b>reforge</b> Rare and Epic pieces to reroll their bonuses.</p><p><b>Salvage by type</b> scraps a whole slot and rarity in one go. It never touches worn pieces or set pieces and asks for a second tap.</p></div>
+    <div class="card entry"><h3>Armory</h3><p>Six slot tabs. Pick a piece to see what swapping would change, then EQUIP. Take Off clears a slot. SETS shows each set's bonuses and which ones you have reached.</p></div>
+    <div class="card entry"><h3>Skill Shrine</h3><p>Three pages: <b>Skills</b> (spend Skill Points on a hero's skills), <b>Aspects</b> and <b>Mastery</b> (long-term hero upgrades).</p></div>
+    <div class="card entry"><h3>Trophy Hall</h3><p>Your showroom. Set stands show every hero's pieces together, trophies count boss kills, and you can decorate. You can target a boss you have beaten here.</p></div>
+    <div class="card entry"><h3>The Gate</h3><p>Starts the next floor. It names the boss when you have set a target.</p></div>
+  </div>
+  <h2>Two currencies</h2>
+  <div class="tw"><table>
+    <tr><th>Currency</th><th>Belongs to</th><th>Comes from</th><th>Spent on</th></tr>
+    <tr><td class="k">Scrap</td><td>Each hero separately</td><td>Finishing floors, chests, salvaging gear</td><td>Repairs, reforging, Aspect tiers, Mastery respec</td></tr>
+    <tr><td class="k">Skill Points</td><td>Shared by all your heroes</td><td>Completing floors (1 each, 1 more on every third floor), the first time you beat each boss (2), a failed climb after the boss appeared (1)</td><td>Shrine skills, unlocking Aspects</td></tr>
+  </table></div>
+</section>
+
+<section class="page" id="gear" data-title="Gear and sets">
+  <h1>Gear and sets</h1>
+  <h2>Pieces</h2>
+  <p>Six slots: Helmet, Chest, Gloves, Legs, Boots and Weapon. Each slot has its own main stat (Helmet: crit and cooldowns, Chest: HP and armor, Gloves: attack speed, Legs: damage, Boots: move speed, Weapon: damage and crit damage).</p>
+  <div class="tw"><table>
+    <tr><th>Rarity</th><th>What it adds</th></tr>
+    <tr><td class="k">Common</td><td>The slot stat only</td></tr>
+    <tr><td class="k">Rare</td><td>Slot stat and one bonus stat</td></tr>
+    <tr><td class="k">Epic</td><td>Slot stat, two bonus stats and one special effect (kills heal, a chance to stun, crits burn, or an extra potion each floor)</td></tr>
+    <tr><td class="k">Legendary (set)</td><td>A boss set piece. Counts toward set bonuses.</td></tr>
+  </table></div>
+  <h2>Durability</h2>
+  <p>Worn pieces lose 25% durability when a climb fails. At 0 a piece is broken and gives nothing until repaired. Finish your floors and you lose nothing.</p>
+  <h2>Boss chests</h2>
+  <p>A boss chest holds a Rare (62%), an Epic (35%) or a set piece (3%). There is a safety net: after seven boss chests from the same boss without a set piece for your hero, the eighth is guaranteed to be one.</p>
+  <h2>Set bonuses</h2>
+  <p>Worn, unbroken pieces count. Bonuses fix at the start of the floor. Set pieces found on any hero show on the Trophy Hall stands for all of them.</p>
+  <div class="grid" id="set-grid"></div>
+</section>
+
+<section class="page" id="progress" data-title="Growing stronger">
+  <h1>Growing stronger</h1>
+  <h2>Level-up cards</h2>
+  <ul class="plain">
+    <li>Each level shows three cards. At least one is always a plain buff, so you never have to drop a skill you like.</li>
+    <li>You get <b>one reroll per floor</b>, and more from guarded and cursed chests. You can also <b>skip</b> a level-up.</li>
+    <li>When every skill you could take is maxed, level-ups offer <b>Ascension</b> cards: strong bargains with a gain and a cost, taken once per climb.</li>
+    <li>The cards ignore touches for a moment after they appear, so you can read them first.</li>
+  </ul>
+  <h2>Relics</h2>
+  <p>Beat a boss and you are offered three relics: small permanent stat boosts for the rest of the climb (some carry an Epic effect). A repeat relic ranks up to 3. The boss you just beat offers its own relics three times as often.</p>
+  <h2>Aspects</h2>
+  <p>A long-term upgrade tied to each boss. To unlock an Aspect, <b>beat its boss three times</b> (across all your heroes) and spend <b>three Skill Points</b> on the Aspects page. Each hero trains each Aspect separately by fighting with it equipped, and later tiers also cost scrap. An Aspect gives a flat stat and a signature effect, such as a ground slam, kills that heal, or an arc of lightning.</p>
+  <h2>Mastery</h2>
+  <p>Each hero has a skill tree with three lanes: <b>Might</b> (damage, crit, speed, cooldowns), <b>Vitality</b> (HP, armor, regen) and <b>Wits</b> (move speed, pickup range, XP). You earn Mastery points by playing. Each lane ends in a keystone: Executioner (extra damage to bosses), Last Stand (less damage taken when low) and Treasure Sense (every chest shown on the map). Respec for a little scrap.</p>
+  <h2>Records and the leaderboard</h2>
+  <p>The Records screen tracks your deepest floor, highest level and most kills for each hero. The BOARD shows the top climbs for everyone. Your best climb is sent automatically; you can pick your own display name on the board screen. Co-op runs and event runs are not sent.</p>
+</section>
+
+<section class="page" id="battleground" data-title="Battleground">
+  <h1>Battleground</h1>
+  <p class="lede">Team PvP, from the PLAY WITH FRIENDS lobby. Two teams fight over three Beacons on one arena, the Ashen Pits. Matches last at most five minutes.</p>
+  <h2>How to start</h2>
+  <ul class="plain">
+    <li>The host taps PLAY WITH FRIENDS, then HOST A ROOM, then the MODE button to switch CO-OP to BATTLEGROUND.</li>
+    <li>Friends join with the room code. Teams fill evenly (Blue and Red); tap TEAM to switch if the other side has room. Two to eight players.</li>
+    <li>Everyone taps READY and the host taps START.</li>
+  </ul>
+  <h2>The rules</h2>
+  <ul class="plain">
+    <li><b>Beacons.</b> Stand inside a ring alone to capture it (about 8 seconds). Enemies in the ring freeze it. Each Beacon you hold scores 1 point a second.</li>
+    <li><b>Kills.</b> Defeating an enemy hero scores 5 points, and 5 more if they were standing in a Beacon ring.</li>
+    <li><b>Winning.</b> First team to 100 points, or the higher score at 5:00. A tie goes to the team holding more Beacons, otherwise it is a draw.</li>
+    <li><b>Bases.</b> Your base is a safe zone: nobody can hit you there, and you cannot be targeted. You come back to it 6 seconds after going down, with 2 seconds of protection.</li>
+    <li><b>Your build counts.</b> Your gear, set bonuses, Mastery and Aspects carry over. Everyone is level 10 with a fixed three-skill kit for their hero, health is doubled, and hero-on-hero damage is scaled down so fights last.</li>
+    <li><b>Crowd control is shortened</b> and cannot be chained: after being stunned or rooted you are immune for 2 seconds.</li>
+    <li>Skeletons, Beasts and summons fight too. Matches are saved only as wins, losses and kills on the Records screen.</li>
+  </ul>
+</section>
+
+<section class="page" id="events" data-title="Events">
+  <h1>Events</h1>
+  <h2>The Hollow Harvest</h2>
+  <p class="lede">A limited Halloween event, open from <b>21 October to 2 November 2026</b>. Everything you unlock stays after it ends.</p>
+  <p>Start it from the event page on the title screen. A Hollow Run is <b>three floors</b> under a harvest moon, with smashable pumpkins that drop candy (healing and bonus XP), and extra chests. The last floor always ends with <b>Gourdon, the Pumpkin King</b>.</p>
+  <div class="tw"><table>
+    <tr><th>Reward</th><th>How</th></tr>
+    <tr><td class="k">Mini Pumpkin</td><td>Finish a Hollow Run, win or lose</td></tr>
+    <tr><td class="k">Pumpkin Head</td><td>Beat Gourdon on or before 31 October</td></tr>
+    <tr><td class="k">Nibbles</td><td>A drop from Gourdon (10% each kill, certain on the 8th kill without it). Nibbles fetches your XP gems, candy and gear and follows you in every run.</td></tr>
+    <tr><td class="k">Gourdon's Wick</td><td>A drop from Gourdon. A relic that lets your hits set targets on fire.</td></tr>
+    <tr><td class="k">Golden Pumpkin Head</td><td>A rare drop from Gourdon (2%)</td></tr>
+  </table></div>
+  <p>Duplicates turn into candy and scrap. Gourdon resists Earth and is weak to Fire.</p>
+</section>
+
+<section class="page" id="tips" data-title="Tips and questions">
+  <h1>Tips and questions</h1>
+  <div id="faq"></div>
+</section>
+
+<footer>Field guide for the live game at <a href="https://ringshark.github.io/ashfall-survivors-play/" target="_blank" rel="noopener">ringshark.github.io/ashfall-survivors-play</a>. Updated 24 October 2026, with co-op and Battleground. If something here does not match what you see in the game, the game wins; tell the developers.</footer>
+</main>
+</div>
+
+<script>
+var PAGES=[["start","Start here"],["heroes","Heroes"],["skills","Skills"],["floors","Floors and monsters"],["bosses","Bosses"],["town","The Town"],["gear","Gear and sets"],["progress","Growing stronger"],["battleground","Battleground"],["events","Events"],["tips","Tips and questions"]];
+
+var HEROES=[
+ {n:"Barbarian",h:"Bigfoot",hp:150,sp:"Slow",role:"Tough brawler",t:"Punches fire by themselves. <b>Rage</b> builds as you kill and get hit; at full, your punches speed up. A shield blocks some hits.",s:"Shield Toss"},
+ {n:"Necromancer",h:"Lich King",hp:80,sp:"Glides",role:"Fragile, raises an army",t:"Soul Bolt hits the nearest monster. Slain monsters can rise as <b>skeletons</b> (50% chance, up to 20) that fight for you, wearing the look of what they killed.",s:"Bone Rush"},
+ {n:"Mage",h:"Archmage",hp:90,sp:"Average",role:"Elemental caster",t:"Elemental Bolt cycles Fire, Ice, Lightning and Earth. Skills cost <b>mana</b>. Hitting with new elements builds a combo for extra spell damage.",s:"Meteor"},
+ {n:"Ranger",h:"Elf",hp:100,sp:"Fastest",role:"Piercing arrows and crits",t:"Arrows pierce every monster in a line. The <b>Untouched Streak</b> raises crit chance while you avoid damage and drops when you are hit.",s:"Multishot"},
+ {n:"Animal Tamer",h:"Orc",hp:120,sp:"Average",role:"Whip and an evolving Beast",t:"The whip marks a target and your <b>Beast</b> goes for it. The Beast evolves with your level: Wolf, Lion (3), Huge Snake (5), Mammoth (7), Dragon (9). If it falls, it returns after 12 seconds.",s:"Beast Special"},
+ {n:"Summoner",h:"Djinn",hp:90,sp:"Floats",role:"One great summon",t:"At level 2 you make a <b>Pact</b>: a Greater Elemental (huge, slow slams) or a Demon Brute (fast, steals life). If it dies, stand still for 4 seconds to bring it back.",s:"Summon Special"}
+];
+
+var SKILLS={
+ Barbarian:{act:["Shield Toss (start)","Shield Bash","Charge","Ground Smash","Thunder Clap","Bigfoot Roar (capstone)"],pas:["Rage Gain","Block Chance","Fist Speed","Knockback","Stun Duration","Berserk","Charge Reset"],
+  evo:[["Shield Toss","Whirling Shield orbits you; Shield Volley adds two more shields"],["Shield Bash","Shockwave Bash sends a wave; Bulwark cuts damage taken and reflects hits"],["Charge","Trample leaves hurting cracks; Gate Breaker ends in a slam and stun"],["Ground Smash","Fault Line cracks the floor in six directions; Aftershock adds two more smashes"],["Thunder Clap","Chain Thunder echoes the clap; Static Field leaves a zapping field"],["Bigfoot Roar","Rallying Roar gives Rage and a heal; Dread Roar makes monsters take more damage"]],
+  note:"Shield Toss flies at the nearest monster and always returns."},
+ Necromancer:{act:["Bone Rush (start)","Bone Wall","Scythe Swing","Corpse Explosion","Corpse Missile","Army of the Ashen (capstone)"],pas:["Raise Chance","Skeleton HP","Skeleton Damage","Skeleton Mages","Minion Speed","Soul Siphon","Corpse Potency"],
+  evo:[["Bone Rush","Bone Storm: skeletons whirl; Cursed Rush: dying skeletons explode"],["Bone Wall","Spike Wall; Bone Cage rings a pack in six slabs"],["Scythe Swing","Reaping Whirl spins three times; Soul Harvest turns corpses into healing"],["Corpse Explosion","Carrion Crows hatch from each corpse; Plague Burst hits harder and poisons"],["Corpse Missile","Cluster Missile fires three; Grave Burst explodes on impact"],["Army of the Ashen","Ashen Horde brings three ash knights; Wraith Legion makes the army unhurtable"]]},
+ Mage:{act:["Meteor (start)","Frost Nova","Entangling Vines","Chain Storm","Earthquake","Elemental Convergence (capstone)"],pas:["Elemental Mastery","Mana Flow","Searing Burns","Deep Freeze","Chain Count","Deep Combo","Elemental Shield"],
+  evo:[["Meteor","Meteor Shower drops three smaller meteors; Molten Core leaves a huge, fierce lava pool"],["Frost Nova","Glacial Prison freezes then shatters; Blizzard follows you for 4 seconds"],["Entangling Vines","Thorn Garden; Strangling Roots drags monsters in"],["Chain Storm","Storm Orbs; Overload adds jumps that hit harder"],["Earthquake","Fissure cracks the ground; Tremor Chain adds three more quakes"],["Elemental Convergence","Prismatic cycles faster; Elemental Avatar adds an aura and stronger spells"]]},
+ Ranger:{act:["Multishot (start)","Roll","Snare Trap","Arrow Rain","Snipe","Hunter's Mark (capstone)"],pas:["Keen Arrows","Streak Cap","Deadly Aim","Streak Grace","Multishot Arrows","Trap Mastery","Quick Roll"],
+  evo:[["Multishot","Ricochet Volley bounces off walls; Split Shot"],["Roll","Smoke Roll; Flurry Roll fires eight arrows"],["Snare Trap","Hornet Traps release three hornets; Blast Traps explode"],["Arrow Rain","Venom Rain poisons; Thunder Rain adds lightning"],["Snipe","Piercing Beam goes through walls; Headshot hits tough monsters three times as hard and executes weak ones"],["Hunter's Mark","Death Mark explodes; Spreading Mark jumps to the next target"]]},
+ "Animal Tamer":{act:["Beast Special (start)","Mend Beast","Sic 'Em","Bola Toss","Stampede Call","Apex Bond (capstone)"],pas:["Beast HP","Beast Damage","Bond Aura","Beast Speed","Revive Speed","Mark Bonus","Thick Hide"],
+  evo:[["Beast Special","Primal Fury strikes twice; Alpha Call brings a spectral pack"],["Mend Beast","Mending Aura heals you and allies; Spirit Ward makes the Beast untouchable for 3 seconds"],["Sic 'Em","Frenzy: six bites; Hamstring slows and adds damage taken"],["Bola Toss","Webbing slows; Chain Bola ricochets"],["Stampede Call","Spectral Herd runs two phantom lines; Quake Stampede stuns and leaves slowing dust"],["Apex Bond","Alpha Bond lasts longer and hits harder; Bond Burst adds a nova on each strike"]]},
+ Summoner:{act:["Summon Special (start)","Sigil Barrage","Rift Swap","Empower","Portal Nova","Twin Rift (capstone)"],pas:["Summon HP","Summon Damage","Sigil Potency","Summon Speed","Swift Binding","Deeper Link","Pact Fury"],
+  evo:[["Summon Special","Twin Special repeats the move; Rift Overcharge leaves a field"],["Rift Swap","Rift Decoy leaves a decoy; Rift Chain"],["Sigil Barrage","Sigil Storm: homing and more sigils; Sigil Web links monsters so they share damage"],["Empower","Titan: bigger and longer; Shared Power gives you most of the boost"],["Portal Nova","Rift Sprites releases three rift sprites that hunt for you; Echo Nova adds two more blasts"],["Twin Rift","Rift Legion adds three rift spirits; Fusion merges both summons into one giant"]]}
+};
+
+var BOSSES=[
+ ["Brakk, the Gatebreaker","Gatebreaker","Fire","Ice","Swipes, a telegraphed charge and a ground stomp. Hitting a wall stuns him. The stomp wipes out skeletons."],
+ ["Vex Morrow, the Grave Shepherd","Grave Shepherd","Nature","Lightning","Two Grave Portals spawn skeletons. Destroy both and he is exposed and takes more damage. He raises the fallen."],
+ ["Lirienne, the Deadeye","Deadeye","Lightning","Earth","Keeps her distance and blinks away when you get close. Aimed bursts, a volley that follows your path, snare traps, and a long shot you can interrupt."],
+ ["The Ash Warden","Warden","Ice","Fire","A tower shield blocks hits from the front, so hit him from the side. A combo ends with a slam that sticks his sword. Chains pull you in. Ground fire."],
+ ["Skarn, the Stormcaller","Stormcaller","Lightning","Ice","Strike lines, fans of orbs and an Overcharge channel. Break the channel or run out of range of the nova. Storms at 40% health."],
+ ["Rimeheart, the Frost Matron","Rimeheart","Ice","Fire","Expanding frost rings with one gap, spike lanes, slowing frost patches. Frozen Fury at 40% health."]
+];
+
+var SETS=[
+ ["Gatebreaker","Brakk",["2 pieces: +50% knockback","3 pieces: every 15th hit sends a small shockwave","5 pieces: every 20 seconds your next hit is a big slam"]],
+ ["Grave Shepherd","Vex Morrow",["2 pieces: kills can raise an ash wisp ally","3 pieces: up to two wisps, lasting longer","5 pieces: a boss kill calls two ash knights"]],
+ ["Deadeye","Lirienne",["2 pieces: +15% damage to far enemies","3 pieces: bolts pierce one more","5 pieces: crits apply Deadeye's Mark"]],
+ ["Warden","The Ash Warden",["2 pieces: hits taken build Ember Guard (less damage taken)","3 pieces: every 10th hit taken releases an ash nova","5 pieces: once per floor, lethal damage leaves you at 1 HP and blasts a nova"]],
+ ["Stormcaller","Skarn",["2 pieces: crits may arc to a nearby enemy","3 pieces: every 12th hit calls a lightning strike","5 pieces: stand still to hit harder and call strikes"]],
+ ["Rimeheart","Rimeheart",["2 pieces: hits may chill","3 pieces: taking damage releases a frost nova","5 pieces: Permafrost cuts damage taken for part of every cycle"]]
+];
+
+var FAQ=[
+ ["Does the game save?","Yes, in your browser on that device. Clearing site data erases it. Between floors your climb is also saved, so reloading the page brings you back to the Town. If the page reloads in the middle of a floor you land on a Welcome Back screen and can continue that floor."],
+ ["Why did my game restart on my phone?","Phones sometimes discard a tab in the background. The game saves every few seconds and when you leave it, and offers to continue when you come back. Keeping the game on your home screen helps."],
+ ["Which hero should I start with?","The Barbarian is the easiest: lots of health, simple skills. The Ranger is the fastest and rewards staying clear of damage. The Necromancer and Summoner reward managing allies. The Mage rewards picking the floor's weak element."],
+ ["How do I beat a boss I keep losing to?","Learn its telegraph: every big attack shows a line or circle first. Bring the element it is weak to, use stuns to fill its concussion meter, and keep potions for the fight."],
+ ["What is the best way to get set pieces?","Beat bosses. Set pieces drop from boss chests only. Target one boss in the Trophy Hall (once you have beaten it) to farm it, and remember the guarantee after seven chests without one."],
+ ["What should I spend scrap on first?","Repairs after a failed climb, then reforging Epic pieces you plan to keep. Salvage Commons by type to turn clutter into scrap."],
+ ["What should I spend Skill Points on first?","Your hero's early actives (1 point each), then the 2-point ones. Unlock an Aspect once you have beaten its boss three times."],
+ ["Can I play with friends?","Yes, up to four players (eight in a Battleground). On the title screen tap PLAY WITH FRIENDS. One player taps HOST A ROOM and shares the five-letter code; the others tap JOIN WITH CODE. Everyone readies up and the host taps START. You share the same maze, monsters and boss, and each player keeps their own hero, build, gear and Town. Monsters get tougher and more numerous with more players. At 0 HP you are down, not out: a friend standing beside you for 3 seconds brings you back. The floor ends when everyone is down. At the Gate you wait for friends, and the host starts the next floor. Press G or the CHAT button to ping or send HELP!, GO!, WAIT or THANKS. Co-op runs are not saved mid-floor and do not go on the leaderboard."],
+ ["The game feels slow to load.","The first visit downloads a large file once; your browser keeps it afterwards. Some extra art keeps downloading in the background for the first minute and appears when ready."]
+];
+
+(function(){
+ function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+ var hg=document.getElementById("hero-grid");
+ hg.innerHTML=HEROES.map(function(h){return '<div class="card entry"><h3>'+h.n+'</h3><div class="sub">'+h.h+' · '+h.role+'</div><div class="stat"><span class="chip">'+h.hp+' HP</span><span class="chip">'+h.sp+'</span><span class="chip fire">Starts with '+h.s+'</span></div><p>'+h.t+'</p></div>'}).join("");
+ var sb=document.getElementById("skill-blocks");
+ sb.innerHTML=Object.keys(SKILLS).map(function(k){var s=SKILLS[k];
+  return '<div class="entry"><h2>'+k+'</h2><div class="grid"><div class="card"><h3>Actives</h3><ul class="plain">'+s.act.map(function(a){return '<li>'+esc(a)+'</li>'}).join("")+'</ul></div><div class="card"><h3>Passives</h3><ul class="plain">'+s.pas.map(function(a){return '<li>'+esc(a)+'</li>'}).join("")+'</ul><div class="sub">The first three passives are available from the start.</div></div></div>'+(s.note?'<p>'+esc(s.note)+'</p>':'')+'<h3>Evolutions</h3><div class="evo">'+s.evo.map(function(e){return '<div><b>'+esc(e[0])+'</b>'+esc(e[1])+'</div>'}).join("")+'</div></div>'}).join("");
+ var bg=document.getElementById("boss-grid");
+ bg.innerHTML=BOSSES.map(function(b){return '<div class="card entry"><h3>'+b[0]+'</h3><div class="sub">Drops the '+b[1]+' set</div><div class="stat"><span class="chip bad">Resists '+b[2]+'</span><span class="chip good">Weak to '+b[3]+'</span></div><p>'+esc(b[4])+'</p></div>'}).join("");
+ var sg=document.getElementById("set-grid");
+ sg.innerHTML=SETS.map(function(s){return '<div class="card entry"><h3>'+s[0]+'</h3><div class="sub">From '+s[1]+'</div><ul class="plain">'+s[2].map(function(x){return '<li>'+esc(x)+'</li>'}).join("")+'</ul></div>'}).join("");
+ document.getElementById("faq").innerHTML=FAQ.map(function(f){return '<div class="entry"><h2>'+esc(f[0])+'</h2><p>'+esc(f[1])+'</p></div>'}).join("");
+
+ var nav=document.getElementById("nav");
+ nav.innerHTML=PAGES.map(function(p){return '<li><a href="#'+p[0]+'" data-p="'+p[0]+'">'+p[1]+'</a></li>'}).join("");
+ var q=document.getElementById("q");
+ function show(){
+  var id=(location.hash||"").slice(1);
+  if(!PAGES.some(function(p){return p[0]===id}))id="start";
+  document.querySelectorAll("section.page").forEach(function(s){s.classList.toggle("on",s.id===id)});
+  nav.querySelectorAll("a").forEach(function(a){if(a.dataset.p===id)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+  document.title="Ashfall Survivors Field Guide";
+ }
+ function search(){
+  var term=q.value.trim().toLowerCase();
+  document.body.classList.toggle("searching",term.length>1);
+  var secs=document.querySelectorAll("section.page");
+  secs.forEach(function(s){
+   var any=false;
+   var blocks=s.querySelectorAll(".entry");
+   if(term.length<2){blocks.forEach(function(b){b.hidden=false});var m=s.querySelector(".empty");if(m)m.remove();return}
+   blocks.forEach(function(b){var hit=b.textContent.toLowerCase().indexOf(term)>=0;b.hidden=!hit;if(hit)any=true});
+   var head=s.querySelector("h1");
+   var hits=any||(head&&head.textContent.toLowerCase().indexOf(term)>=0);
+   var empty=s.querySelector(".empty");
+   if(!blocks.length){s.hidden=!(s.textContent.toLowerCase().indexOf(term)>=0)}else{s.hidden=!any}
+  });
+  if(term.length<2)secs.forEach(function(s){s.hidden=false});
+ }
+ window.addEventListener("hashchange",function(){q.value="";search();show();window.scrollTo(0,0)});
+ q.addEventListener("input",search);
+ show();
+})();
+</script>
+
+</html>
