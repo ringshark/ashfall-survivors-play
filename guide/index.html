@@ -130,12 +130,12 @@ footer{margin-top:44px;color:var(--muted);font-size:14px}
   <h1>Heroes</h1>
   <p class="lede">Six heroes, each with its own way to fight. All of them start with one active skill and earn the rest by levelling up and unlocking skills at the Skill Shrine.</p>
   <div class="grid" id="hero-grid"></div>
-  <div class="note">Hero names in game: Barbarian is Bigfoot, Necromancer is the Lich King, Mage is the Archmage, Ranger is the Elf, Animal Tamer is the Orc, Summoner is the Djinn. Fairy Princess is a solo hero with a sword and healing magic.</div>
+  <div class="note">Hero names in game: Barbarian is Bigfoot, Necromancer is the Lich King, Mage is the Archmage, Ranger is the Elf, Animal Tamer is the Orc, Summoner is the Djinn. Fairy Princess is a solo hero with a sword and healing magic. Paladin is the Oathwarden, a solo black-plate greatsword fighter.</div>
 </section>
 
 <section class="page" id="skills" data-title="Skills">
   <h1>Skills and evolutions</h1>
-  <p class="lede">The original six heroes each have six actives and seven passives and start with one active. Fairy Princess has a compact first kit with Royal Bloom and Flutter Step ready from the start. The Shrine sells the rest with Skill Points, and level-up cards put them in your hands.</p>
+  <p class="lede">The original six heroes each have six actives and seven passives and start with one active. Fairy Princess and Paladin have compact first kits with two active skills ready from the start. The Shrine sells the rest with Skill Points, and level-up cards put them in your hands.</p>
   <ul class="plain">
     <li>You carry <b>three actives</b> at a time. Picking a fourth lets you swap one out; the swapped skill loses its ranks for that climb.</li>
     <li>Actives rank up to 3. The capstone active (the last one on each list) only appears from <b>level 8</b>.</li>
@@ -342,11 +342,13 @@ var HEROES=[
  {n:"Mage",h:"Archmage",hp:90,sp:"Average",role:"Elemental caster",t:"Elemental Bolt cycles Fire, Ice, Lightning and Earth. Skills cost <b>mana</b>. Hitting with new elements builds a combo for extra spell damage.",s:"Meteor"},
  {n:"Ranger",h:"Elf",hp:100,sp:"Fastest",role:"Piercing arrows and crits",t:"Arrows pierce every monster in a line. The <b>Untouched Streak</b> raises crit chance while you avoid damage and drops when you are hit.",s:"Multishot"},
  {n:"Animal Tamer",h:"Orc",hp:120,sp:"Average",role:"Whip and an evolving Beast",t:"The whip marks a target and your <b>Beast</b> goes for it. The Beast evolves with your level: Wolf, Lion (3), Huge Snake (5), Mammoth (7), Dragon (9). If it falls, it returns after 12 seconds.",s:"Beast Special"},
+ {n:"Paladin",h:"Oathwarden",hp:160,sp:"Slow",role:"Solo black-plate defender",t:"Heavy greatsword cleaves build <b>Resolve</b>. Stand Firm spends Resolve for longer protection. Storm Cleave is a lightning sweep; unlock Unite at the Shrine to draw foes together. Solo climbs and local records only for now.",s:"Stand Firm + Storm Cleave"},
  {n:"Fairy Princess",h:"Fairy Princess",hp:85,sp:"Quick",role:"Solo sword and healing",t:"Automatic sword slashes release a <b>star bolt every third swing</b>. Kills charge Brave Heart to strengthen Royal Bloom. Flutter Step dashes safely through danger and stops at walls. Solo climbs and local records only for now.",s:"Royal Bloom + Flutter Step"},
  {n:"Summoner",h:"Djinn",hp:90,sp:"Floats",role:"One great summon",t:"At level 2 you make a <b>Pact</b>: a Greater Elemental (huge, slow slams) or a Demon Brute (fast, steals life). If it dies, stand still for 4 seconds to bring it back.",s:"Summon Special"}
 ];
 
 var SKILLS={
+ Paladin:{act:["Stand Firm (start)","Storm Cleave (start)","Unite"],pas:["Blacksteel Edge","Iron Will","Storm Oath"],evo:[],note:"Solo first kit: slot 1 protects you, slot 2 sweeps with lightning. Hits and damage taken build Resolve, which extends your next ward. Unite is unlocked at the Shrine. No skill evolutions yet."},
  "Fairy Princess":{act:["Royal Bloom (start)","Flutter Step (start)","Crown Burst"],pas:["Enchanted Edge","Heart Crystal","Royal Grace"],evo:[],note:"Solo first kit: slot 1 heals, slot 2 dashes. Kills charge Brave Heart up to ten for a stronger heal. Crown Burst is unlocked at the Shrine. No skill evolutions yet."},
  Barbarian:{act:["Shield Toss (start)","Shield Bash","Charge","Ground Smash","Thunder Clap","Bigfoot Roar (capstone)"],pas:["Rage Gain","Block Chance","Fist Speed","Knockback","Stun Duration","Berserk","Charge Reset"],
   evo:[["Shield Toss","Whirling Shield orbits you; Shield Volley adds two more shields"],["Shield Bash","Shockwave Bash sends a wave; Bulwark cuts damage taken and reflects hits"],["Charge","Trample leaves hurting cracks; Gate Breaker ends in a slam and stun"],["Ground Smash","Fault Line cracks the floor in six directions; Aftershock adds two more smashes"],["Thunder Clap","Chain Thunder echoes the clap; Static Field leaves a zapping field"],["Bigfoot Roar","Rallying Roar gives Rage and a heal; Dread Roar makes monsters take more damage"]],
