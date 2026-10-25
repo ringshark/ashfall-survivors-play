@@ -14,13 +14,6 @@
     }
     return new Response(body, { headers: { 'Content-Type': 'application/wasm' } });
   };
-  const updateOrientation = () => {
-    document.documentElement.classList.toggle('portrait-phone',
-      matchMedia('(orientation: portrait)').matches && matchMedia('(pointer: coarse)').matches);
-  };
-  addEventListener('resize', updateOrientation);
-  addEventListener('orientationchange', updateOrientation);
-  updateOrientation();
   // Offline cache (dist/sw.js): registered after the page has loaded so it never competes with the first download.
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
