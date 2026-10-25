@@ -92,6 +92,7 @@ body {
 		
 html, body { width:100%; height:100%; background:#152521; overscroll-behavior:none; }
 #status { background:#152521; }
+#canvas { max-width:100vw; max-height:100vh; }
 #loading-title { color:#e7ca86; font:600 clamp(20px,4vw,32px) system-ui,sans-serif; text-align:center; letter-spacing:.04em; }
 #loading-title small, #rotate-notice small { display:block; font:16px system-ui,sans-serif; color:#c5d2c6; margin-top:16px; letter-spacing:normal; }
 #status-progress { accent-color:#e7ca86; width:min(320px,70%); bottom:30%; }
@@ -123,7 +124,7 @@ html, body { width:100%; height:100%; background:#152521; overscroll-behavior:no
 		<script src="phone-performance.js"></script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":25078112,"index.wasm":43699190},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":25078160,"index.wasm":43699190},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 GODOT_CONFIG.focusCanvas = !matchMedia('(pointer: coarse)').matches;
 AshfallPerformance.configure(GODOT_CONFIG);

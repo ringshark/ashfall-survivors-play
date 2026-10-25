@@ -5,7 +5,7 @@
 // (scripts/stamp-sw.mjs writes it), so a new build is picked up on the next visit and the old copy is deleted.
 // NOT cached on purpose: art.pck and art.json (the game keeps the art pack in its own storage and must always ask the
 // network which version is newest), the leaderboard and the co-op servers.
-const BUILD = "ab056ac61c2c";
+const BUILD = "7900df8e620f";
 const CACHE = "ashfall-" + BUILD;
 const FILES = ["index.html","index.js","index.wasm.gz","index.pck","index.audio.worklet.js","index.audio.position.worklet.js","phone-loader.js","phone-controls.js","phone-performance.js","manifest.webmanifest","favicon.svg","icon-192.png","icon-512.png","icon-maskable-512.png","index.apple-touch-icon.png"];
 
@@ -16,7 +16,7 @@ self.addEventListener("install", (event) => {
     const cache = await caches.open(CACHE);
     // One file failing must not stop the rest: whatever is missing is cached when the page next asks for it.
     await Promise.allSettled(FILES.map(async (name) => {
-      const response = await fetch(keyOf(name));
+      const response = await fetch(keyOf(name), { cache: "no-cache" });
       if (response.ok && response.status === 200 && !response.redirected) await cache.put(keyOf(name), response);
     }));
     await self.skipWaiting();
