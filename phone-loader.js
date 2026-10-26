@@ -3,6 +3,24 @@
   const fetchOriginal = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input, options) => {
     const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url, location.href);
+    if (url.pathname.endsWith('/art.pck')) {
+      const response = await fetchOriginal(input, options);
+      if (!response.ok || response.status !== 200) return response;
+      // Cache Storage can deliver tiny chunks. Godot polls one browser chunk per
+      // frame, so coalesce first, then pass views matching its 4 MiB read size.
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let offset = 0;
+      const body = new ReadableStream({ pull(controller) {
+        if (offset === bytes.length) { controller.close(); return; }
+        const end = Math.min(offset + 4194304, bytes.length);
+        controller.enqueue(bytes.subarray(offset, end));
+        offset = end;
+      }});
+      const headers = new Headers(response.headers);
+      headers.delete('Content-Encoding');
+      headers.set('Content-Length', String(bytes.length));
+      return new Response(body, { status: response.status, statusText: response.statusText, headers });
+    }
     if (!url.pathname.endsWith('/index.wasm')) return fetchOriginal(input, options);
     const response = await fetchOriginal(new URL('index.wasm.gz', location.href), options);
     if (!response.ok) throw new Error('The game could not download. Reload to try again.');
