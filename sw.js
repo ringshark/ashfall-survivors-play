@@ -5,7 +5,7 @@
 // (scripts/stamp-sw.mjs writes it), so a new build is picked up on the next visit and the old copy is deleted.
 // Artwork has a separate versioned cache so a game update does not discard it.
 // The leaderboard and co-op services are never cached here.
-const BUILD = "a86d00e2feaf";
+const BUILD = "9feef9bfd0c1";
 const CACHE = "ashfall-" + BUILD;
 const ART_CACHE = "ashfall-art-v1";
 const FILES = ["index.html","index.js","index.wasm.gz","index.pck","index.audio.worklet.js","index.audio.position.worklet.js","phone-loader.js","phone-controls.js","phone-performance.js","manifest.webmanifest","favicon.svg","icon-192.png","icon-512.png","icon-maskable-512.png","index.apple-touch-icon.png"];
