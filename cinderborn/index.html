@@ -1,0 +1,496 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><!--wrap-->
+<title>Cinderborn</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: one command console. Status strip on top, tab rail, a single working pane; battles and events take over as a sheet. */
+:root{
+  color-scheme:dark;
+  --bg:#15121a; --panel:#1f1a26; --panel2:#2a2333; --line:#3b3246;
+  --fg:#ece4d6; --dim:#a2978f;
+  --ember:#f0a03c; --ember-ink:#1d1206; --aegis:#62bfae; --blood:#d9574a; --throne:#e6d9b4;
+  --varn:#c8553d; --osk:#6f8fd6; --thal:#a583d8;
+  --display:"Cinzel","Trajan Pro",Georgia,serif;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+  --data:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px}
+#app{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.04em}
+h1{font-size:1.5rem;color:var(--ember)}
+h2{font-size:1.1rem}
+h3{font-size:.95rem;color:var(--throne)}
+p{margin:0}
+.lbl{font:600 .72rem var(--data);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.num{font-family:var(--data);font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)} .ok{color:var(--aegis)} .bad{color:var(--blood)} .gold{color:var(--ember)}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.rank{font:600 1rem var(--data);letter-spacing:.12em;text-transform:uppercase;color:var(--throne)}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.chip{background:var(--panel);border:1px solid var(--line);padding:7px 10px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.chip b{font:600 1.15rem var(--data);font-variant-numeric:tabular-nums}
+.bar{height:5px;background:var(--panel2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ember);transition:width .3s}
+.bar.a i{background:var(--aegis)} .bar.b i{background:var(--blood)} .bar.big{height:10px}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;color:var(--dim);font:600 .95rem var(--data);letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.tabs button.on{color:var(--ember);border-bottom-color:var(--ember)}
+.tabs button:disabled{opacity:.4;cursor:not-allowed}
+.pane{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.card.story{border-left:3px solid var(--ember);background:linear-gradient(100deg,var(--panel2),var(--panel))}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.sp{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+button{font:600 .95rem var(--data);letter-spacing:.06em}
+.btn{background:var(--panel2);color:var(--fg);border:1px solid var(--line);padding:9px 13px;cursor:pointer;text-align:left;min-height:40px}
+.btn:hover:not(:disabled){border-color:var(--ember)}
+.btn.pri{background:var(--ember);color:var(--ember-ink);border-color:var(--ember)}
+.btn.dng{border-color:var(--blood);color:var(--blood)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn small{display:block;font:400 .8rem var(--body);letter-spacing:0;opacity:.85}
+:focus-visible{outline:2px solid var(--throne);outline-offset:2px}
+.col{display:flex;flex-direction:column;gap:8px}
+.stat{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted var(--line);padding:2px 0}
+.stat span:last-child{font-family:var(--data);font-variant-numeric:tabular-nums}
+/* ship grid */
+.hull{display:grid;gap:6px;max-width:420px;padding:14px 14px 14px 30px;background:var(--panel2);border:1px solid var(--line);clip-path:polygon(0 50%,9% 0,100% 0,100% 100%,9% 100%)}
+.slot{aspect-ratio:1;border:1px dashed var(--line);background:var(--bg);color:var(--dim);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px;min-width:0}
+.slot b{font:600 1rem var(--data);letter-spacing:.06em}
+.slot small{font:500 .68rem var(--data);letter-spacing:.08em}
+.slot.f{border-style:solid}
+.slot.w{color:var(--blood);border-color:var(--blood)} .slot.d{color:var(--aegis);border-color:var(--aegis)}
+.slot.p{color:var(--ember);border-color:var(--ember)} .slot.u{color:var(--throne);border-color:var(--throne)}
+.tag{font:600 .72rem var(--data);letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;padding:1px 6px}
+/* modal sheet */
+#modal{position:fixed;inset:0;background:rgba(10,8,13,.82);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding:calc(12px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+#modal .sheet{background:var(--panel);border:1px solid var(--ember);width:100%;max-width:560px;max-height:100%;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.log{font-size:.88rem;display:flex;flex-direction:column;gap:2px;min-height:7.5em}
+.log div:last-child{color:var(--fg)} .log div{color:var(--dim)}
+.intent{padding:7px 10px;border:1px solid var(--line);font-size:.92rem}
+.intent.hv{border-color:var(--blood);color:var(--blood);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{background:rgba(217,87,74,.16)}}
+@media (prefers-reduced-motion:reduce){.intent.hv{animation:none}.bar i{transition:none}}
+.stances{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+svg.map{width:100%;height:auto;background:var(--panel2);border:1px solid var(--line)}
+svg.map text{font:600 11px var(--data);fill:var(--fg);letter-spacing:.05em}
+svg.map .n{cursor:pointer}
+</style>
+<div id="app"></div>
+<div id="modal" hidden></div>
+<script>
+"use strict";
+/* ============ DATA ============ */
+const RANKS=[
+ {n:'Cadet',need:0,duty:'College assignments and sim drills. You fly a corvette and nothing else.'},
+ {n:'Ensign',need:30,duty:'Patrol orders in the home belt. Marine barracks, damage control and your first doctrines.'},
+ {n:'Lieutenant',need:80,duty:'Strike orders. Frigate hulls and sun lances are released to you.'},
+ {n:'Commander',need:170,duty:'The sector campaign opens. Take systems from the rival houses and hold them.'},
+ {n:'Captain',need:300,duty:'Cruiser hulls. Prize Law lets you keep more of what you capture.'},
+ {n:'Admiral',need:460,duty:'Dreadnought hulls. You may assault the Meridian Throne.'}];
+const BRIEF=[
+ 'You were born a Cinder in the Emberfall deeps, where the Concord counts people by the tonne. A forged bloodline and a dead Zenith boy\'s name bought you a berth at the Meridian War College. Graduate. Rise. Nobody below the Zenith stratum has ever held a fleet.',
+ 'You wear an officer\'s pips now. The patrol lanes are dull, and they are where captains are made. Down in the lower decks, the stewards have started to nod when you pass.',
+ 'Strike command. The Concord sends you where quotas fail and houses feud. Every order is a choice between your record and your people.',
+ 'A commander may take ground. Three houses hold the sector between you and the Throne: Varn, Oskerry and Thal. None of them will give a system to an upstart.',
+ 'Captains dine with admirals. The Inquisitors have started reading your service file twice.',
+ 'Admiral of the Concord. The Meridian Throne is one battle away, and so is the question of what you do with it.'];
+const HULLS={
+ corvette:{n:'Corvette',slots:6,cols:3,hull:50,power:2,crew:2,cost:0,rank:0},
+ frigate:{n:'Frigate',slots:9,cols:3,hull:90,power:3,crew:3,cost:400,rank:2},
+ cruiser:{n:'Cruiser',slots:12,cols:4,hull:150,power:4,crew:4,cost:1000,rank:4},
+ dreadnought:{n:'Dreadnought',slots:16,cols:4,hull:240,power:5,crew:5,cost:2200,rank:5}};
+const MODS={
+ reactor:{n:'Fusion Reactor',ab:'RX',k:'p',cost:80,pw:0,sup:6,rank:0,d:'+6 power'},
+ rail:{n:'Railgun Battery',ab:'RG',k:'w',cost:60,pw:2,dmg:8,rank:0,d:'8 damage'},
+ lance:{n:'Sun Lance',ab:'SL',k:'w',cost:160,pw:4,dmg:13,pierce:.5,rank:2,d:'13 damage, half ignores shields'},
+ shield:{n:'Aegis Projector',ab:'AE',k:'d',cost:90,pw:3,sh:18,regen:3,rank:0,d:'+18 shield, +3 regen'},
+ armor:{n:'Slag Plating',ab:'PL',k:'d',cost:50,pw:0,hull:28,rank:0,d:'+28 hull'},
+ thrust:{n:'Vector Thrusters',ab:'VT',k:'u',cost:70,pw:2,eva:7,rank:0,d:'+7% evasion'},
+ berth:{n:'Crew Berths',ab:'CB',k:'u',cost:50,pw:1,crew:1,rank:0,d:'+1 crew'},
+ barracks:{n:'Marine Barracks',ab:'MB',k:'u',cost:100,pw:1,board:4,rank:1,d:'+4 boarding strength'},
+ repair:{n:'Damage Control',ab:'DC',k:'d',cost:110,pw:2,rep:4,rank:1,d:'Repairs 4 hull each round'}};
+const MK=[0,1,1.5,2];
+const ROLES={gunner:'Gunner',pilot:'Pilot',engineer:'Engineer',marine:'Marine'};
+const ROLE_D={gunner:'+6% weapon damage per level',pilot:'+3% evasion per level',engineer:'+1 power and +1 shield regen per level',marine:'+2 boarding per level'};
+const CASTES=['Cinder','Flint','Glass','Tide','Zenith'];
+const CASTE_D={Cinder:'Deep-miners. Cheap, and they fight harder for you once Ember reaches 40.',Flint:'The soldier stratum.',Glass:'Technicians and shipwrights.',Tide:'Pilots and haulers.',Zenith:'The ruling stratum. Skilled, costly, and watchful.'};
+const DOCS={
+ gunnery:{n:'Broadside Drill',d:'+15% weapon damage',rank:1,cost:120},
+ helm:{n:'Slipstream Helm',d:'+8% evasion',rank:1,cost:120},
+ quarter:{n:'Quartermaster\'s Ledger',d:'+25% income each cycle',rank:2,cost:200},
+ mask:{n:'The Practiced Mask',d:'Suspicion gains reduced by 30%',rank:2,cost:200},
+ breach:{n:'Breach Rites',d:'+6 boarding strength',rank:3,cost:260},
+ aegis:{n:'Aegis Discipline',d:'+30% shield capacity',rank:3,cost:300},
+ prize:{n:'Prize Law',d:'+30% credits from won battles',rank:4,cost:400},
+ hammer:{n:'Hammerfall Doctrine',d:'Your first volley of every battle deals double damage',rank:5,cost:600}};
+const HOUSES={you:{n:'Your banner',c:'var(--ember)'},varn:{n:'House Varn',c:'var(--varn)'},osk:{n:'House Oskerry',c:'var(--osk)'},thal:{n:'House Thal',c:'var(--thal)'},throne:{n:'The Meridian Throne',c:'var(--throne)'}};
+const NODES=[
+ {n:'Kessel Anchorage',x:55,y:210,o:'you',t:0,inc:0},
+ {n:'Varn\'s Gate',x:180,y:80,o:'varn',t:3,inc:20},{n:'Halcyon Foundry',x:320,y:65,o:'varn',t:4,inc:30},{n:'Brightwater Yards',x:455,y:95,o:'varn',t:5,inc:40},
+ {n:'Oskerry Reach',x:180,y:210,o:'osk',t:3,inc:20},{n:'The Tithe Roads',x:320,y:210,o:'osk',t:4,inc:35},{n:'Mourning Station',x:455,y:210,o:'osk',t:6,inc:40},
+ {n:'Thal Deep',x:180,y:340,o:'thal',t:3,inc:20},{n:'Emberfall Mines',x:320,y:355,o:'thal',t:4,inc:30},{n:'Gallowglass',x:455,y:325,o:'thal',t:5,inc:40},
+ {n:'The Meridian Throne',x:548,y:210,o:'throne',t:9,inc:100}];
+const LINKS=[[0,1],[0,4],[0,7],[1,2],[2,3],[4,5],[5,6],[7,8],[8,9],[2,5],[5,8],[3,10],[6,10],[9,10]];
+const FIRST=['Bren','Ysolde','Dack','Marrow','Tavi','Corvin','Ilse','Rook','Senna','Hale','Orrin','Pim','Vesper','Jory','Katla','Emeric','Noa','Wend','Sable','Garrick'];
+const LAST=['Ashdown','Kell','Varro','Thorne','Mire','Oake','Dray','Lowe','Carrow','Stile','Venn','Harrow','Quill','Brask','Senn'];
+
+/* Orders. rw: c/r are multiples of the standard reward at your rank; e = Ember, s = Suspicion. */
+const T=[
+ {id:'wager',rk:[0,0],t:'Sim Deck Wager',x:'Corvin Dray, heir to a Zenith shipping line, bets the whole mess hall that the scholarship cadet cannot beat him in the sim tank.',ch:[
+   {t:'Take the bet',fight:{n:'Dray\'s sim corvette',mod:0,rw:{c:1.2,r:1.5},x:'Dray climbs out of the tank white-faced. The mess hall is very quiet, then very loud.'}},
+   {t:'Decline politely',out:{x:'You let him have his laugh. A Preceptor notes your restraint.',rw:{r:.4}}}]},
+ {id:'thief',rk:[0,1],t:'The Ration Thief',x:'On night watch you find a Cinder steward filling a satchel with med-gel from the officers\' stores. Her hands are shaking. The lower decks have had no medic in a month.',ch:[
+   {t:'Report her',out:{x:'She is taken below. Your record gains a commendation for vigilance.',rw:{r:1.2,e:-8}}},
+   {t:'Look the other way',out:{x:'You study the bulkhead until her footsteps fade.',rw:{e:8,s:4}}},
+   {t:'Carry the satchel yourself',out:{x:'No one searches a cadet. In the deeps that night, someone scratches a small flame onto a pipe.',rw:{e:16,s:10}}}]},
+ {id:'range',rk:[0,0],t:'Live Gunnery Range',x:'The range master releases a flight of target drones and starts the clock.',ch:[
+   {t:'Engage the drones',fight:{n:'Target drone flight',mod:0,rw:{c:1,r:1},x:'Every drone is slag. The range master grunts, which from her is a medal.'}}]},
+ {id:'question',rk:[0,0],t:'The Preceptor\'s Question',x:'"A mining colony withholds its quota," says Preceptor Aldane. "You command the nearest ship. Cadet. What do you do?"',ch:[
+   {t:'"Blockade until they starve or yield."',out:{x:'"Textbook," says Aldane, and marks you well.',rw:{r:1.2,e:-4}}},
+   {t:'"Ask why the quota failed."',out:{x:'Laughter from the Zenith benches. Aldane does not laugh. He writes something down.',rw:{r:.5,e:6,s:4}}}]},
+ {id:'rigged',rk:[0,1],t:'A Rigged Console',x:'Someone has tampered with your sim console before the fleet exercise. You have ten minutes.',ch:[
+   {t:'Rewire it',check:{role:'engineer',mod:0},pass:{x:'You find the bypass, and you leave a little surprise in the saboteur\'s own console.',rw:{r:1.5,c:.5}},fail:{x:'The console dies mid-exercise. You finish last.',rw:{r:.2}}},
+   {t:'Report it to the Preceptors',out:{x:'They reschedule your run. Informers are not well liked.',rw:{r:.6}}}]},
+ {id:'smuggler',rk:[1,3],t:'Smuggler in the Belt',x:'A freighter is running dark through the ore lanes. It hails you first and offers a generous "inspection fee" to be on its way.',ch:[
+   {t:'Open fire',fight:{n:'Armed freighter',mod:0,rw:{c:1.3,r:1},x:'The freighter vents atmosphere and strikes its colours.'}},
+   {t:'Take the fee',out:{x:'Credits are credits.',rw:{c:1.4,r:-.3}}},
+   {t:'Board and inspect the hold',out:{x:'The hold is full of Cinder families fleeing a sealed mine. You log the ship as empty and let it run.',rw:{e:12,s:7}}}]},
+ {id:'beacon',rk:[1,4],t:'Distress Beacon',x:'A survey ship is breaking up inside a debris field. Its beacon is failing.',ch:[
+   {t:'Fly in after them',check:{role:'pilot',mod:0},pass:{x:'You thread the wreckage and pull eleven survivors out. The story reaches the College by morning.',rw:{r:1.6,c:.8}},fail:{x:'Debris forces you back. You recover the flight recorder and nothing else.',rw:{r:.3}}},
+   {t:'Log it and move on',out:{x:'The beacon goes quiet an hour later.',rw:{r:.2}}}]},
+ {id:'pirate',rk:[1,5],t:'Raider on the Lanes',x:'A raider has been bleeding the tithe convoys. Patrol command wants it gone.',ch:[
+   {t:'Hunt it down',fight:{n:'Lane raider',mod:0,rw:{c:1.2,r:1.2},x:'The raider breaks apart across the lane. Convoy masters send you a case of something expensive.'}},
+   {t:'Bait it with a decoy first',check:{role:'gunner',mod:1},pass:{x:'It takes the bait and eats a full broadside at point-blank range.',rw:{c:1.5,r:1.4}},fail:{x:'It smells the trap and runs.',rw:{r:.3}}}]},
+ {id:'tithe',rk:[1,4],t:'Tithe Escort',x:'You are to escort an ore tithe to the Concord yards. Two days out, unmarked ships close in. Their leader speaks with a deep-miner\'s accent.',ch:[
+   {t:'Defend the tithe',fight:{n:'Ember cell raiders',mod:0,rw:{c:1,r:1.4,e:-8},x:'The raiders scatter. The tithe arrives whole.'}},
+   {t:'Let your shields "fail"',out:{x:'They take the ore and leave your hull unmarked. Your report blames a reactor fault.',rw:{c:.5,e:14,s:12}}}]},
+ {id:'riot',rk:[2,5],t:'Quota Riot at Deepwell',x:'Deepwell\'s miners have barricaded the lift shafts. Strike command orders you to restore the quota by any means.',ch:[
+   {t:'Fire on the barricades',out:{x:'The quota resumes within the day. You do not sleep well.',rw:{r:1.8,e:-14}}},
+   {t:'Send marines to take the ringleaders alive',check:{role:'marine',mod:0},pass:{x:'No shots fired. The ringleaders vanish from the brig that night, and nobody can say how.',rw:{r:1.3,e:8,s:3}},fail:{x:'The boarding goes badly and strike command takes the matter out of your hands.',rw:{r:.3}}},
+   {t:'Report the mine as unsafe and withdraw',out:{x:'The inspectors will take a month to arrive. The miners will use it.',rw:{e:16,s:14}}}]},
+ {id:'rival',rk:[2,5],t:'A House Raider',x:'A rival house captain has been poaching your patrol zone and wants witnesses when he humiliates you.',ch:[
+   {t:'Give him his duel',fight:{n:'House raider',mod:1,rw:{c:1.8,r:1.8},x:'His ship drifts, dark. You send a tug and your compliments.'}},
+   {t:'Refuse the challenge',out:{x:'He tells the story at every table in the sector.',rw:{r:-.4}}}]},
+ {id:'derelict',rk:[2,5],t:'Derelict Warship',x:'An old warship hangs dead in the dark, reactors cold for a century. Its vaults may not be empty.',ch:[
+   {t:'Restart its systems',check:{role:'engineer',mod:1},pass:{x:'The vault doors grind open on racks of sealed components.',rw:{c:2.6,r:.5}},fail:{x:'The reactor will not catch. You strip what you can carry.',rw:{c:.4}}},
+   {t:'Cut in with a boarding party',check:{role:'marine',mod:0},pass:{x:'Your marines burn through to the armoury and haul it out crate by crate.',rw:{c:2,r:.8}},fail:{x:'Automated defences still work. Your marines pull back.',rw:{c:.2}}}]},
+ {id:'cell',rk:[2,5],t:'A Flame on the Pipe',x:'A dock worker presses a scrap of foil into your hand. On it is a small scratched flame and a berth number. The Ember cells want weapons.',ch:[
+   {t:'Divert a shipment to them',cost:1,out:{x:'A crate goes missing between two manifests. Below, they start saying your name.',rw:{c:-1,e:20,s:8}}},
+   {t:'Burn the foil',out:{x:'You were never there.',rw:{}}},
+   {t:'Hand the foil to the Inquisitors',out:{x:'The berth is raided at dawn. You are commended.',rw:{r:2,e:-25,s:-10}}}]},
+ {id:'audit',rk:[1,5],cond:s=>s.sus>=40,t:'The Inquisitor\'s Audit',x:'An Inquisitor in grey has asked for your logs, your crew manifest, and an hour of your time.',ch:[
+   {t:'Make a gift to her office',cost:1.5,out:{x:'She finds everything in order.',rw:{c:-1.5,s:-22}}},
+   {t:'Scrub the logs first',check:{role:'engineer',mod:1},pass:{x:'The logs are spotless. She is almost disappointed.',rw:{s:-28}},fail:{x:'She finds the edit marks.',rw:{s:12}}},
+   {t:'Sit through it',out:{x:'A long hour. She leaves with nothing certain.',rw:{s:-6,r:-.3}}}]}];
+
+/* ============ STATE ============ */
+const R=(a,b)=>a+Math.random()*(b-a),RI=(a,b)=>Math.floor(R(a,b+1)),pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const KEY='cinderborn.v1';
+let S,tab='bridge',sel=null,B=null,pending=null;
+function fresh(){
+  const s={v:1,cycle:1,credits:160,renown:0,rank:0,ember:0,sus:0,hull:'corvette',
+    slots:[{id:'reactor',mk:1},{id:'rail',mk:1},{id:'armor',mk:1},null,null,null],
+    crew:[{name:'Tavi Lowe',caste:'Cinder',role:'engineer',lvl:1,xp:0}],
+    pool:[],orders:[],docs:[],own:NODES.map(n=>n.o),ended:null,log:['You arrive at the Meridian War College under a dead boy\'s name.']};
+  return s;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&j.v===1)return j}catch(e){}return null}
+function note(t){S.log.unshift(t);S.log.length=Math.min(S.log.length,8)}
+
+/* ============ RULES ============ */
+function elvl(c){return c.lvl+(c.caste==='Cinder'&&S.ember>=40?1:0)}
+function roleLv(r){return S.crew.filter(c=>c.role===r).reduce((a,c)=>a+elvl(c),0)}
+function stats(){
+  const h=HULLS[S.hull],st={hull:h.hull,sh:0,regen:0,sup:h.power,used:0,eva:0,board:0,rep:0,crewCap:h.crew,weapons:[]};
+  for(const s of S.slots){if(!s)continue;const m=MODS[s.id],k=MK[s.mk];
+    st.used+=m.pw; if(m.sup)st.sup+=Math.round(m.sup*k); if(m.hull)st.hull+=Math.round(m.hull*k);
+    if(m.sh){st.sh+=Math.round(m.sh*k);st.regen+=Math.round(m.regen*k)}
+    if(m.eva)st.eva+=Math.round(m.eva*k); if(m.board)st.board+=Math.round(m.board*k); if(m.rep)st.rep+=Math.round(m.rep*k);
+    if(m.crew)st.crewCap+=s.mk; if(m.dmg)st.weapons.push({n:m.n,dmg:m.dmg*k,pierce:m.pierce||0});}
+  const eng=roleLv('engineer');st.sup+=eng;st.regen+=st.sh?eng:0;
+  st.dmgMult=1+.06*roleLv('gunner')+(S.docs.includes('gunnery')?.15:0);
+  st.eva=Math.min(60,st.eva+3*roleLv('pilot')+(S.docs.includes('helm')?8:0));
+  st.board+=2*roleLv('marine')+(S.docs.includes('breach')?6:0);
+  if(S.docs.includes('aegis'))st.sh=Math.round(st.sh*1.3);
+  st.fire=Math.round(st.weapons.reduce((a,w)=>a+w.dmg,0)*st.dmgMult);
+  st.ok=st.used<=st.sup&&st.weapons.length>0;
+  return st;
+}
+function stdC(){return 50+45*S.rank} function stdR(){return 8+4*S.rank}
+function income(){let v=20+10*S.rank;S.own.forEach((o,i)=>{if(o==='you')v+=NODES[i].inc});return Math.round(v*(S.docs.includes('quarter')?1.25:1))}
+function applyRw(rw,battle){
+  const out=[];if(!rw)return'';
+  if(rw.c){let v=Math.round(rw.c*stdC()*(battle&&S.docs.includes('prize')&&rw.c>0?1.3:1));S.credits=Math.max(0,S.credits+v);out.push((v>0?'+':'')+v+' credits')}
+  if(rw.r){let v=Math.round(rw.r*stdR());S.renown=Math.max(0,S.renown+v);out.push((v>0?'+':'')+v+' renown')}
+  if(rw.e){S.ember=clamp(S.ember+rw.e,0,100);out.push((rw.e>0?'+':'')+rw.e+' Ember')}
+  if(rw.s){let v=rw.s>0?Math.round(rw.s*(S.docs.includes('mask')?.7:1)):rw.s;S.sus=clamp(S.sus+v,0,100);out.push((v>0?'+':'')+v+' Suspicion')}
+  return out.join(' · ');
+}
+function mkEnemy(t,n){return{n,t,hull:34+34*t,maxHull:34+34*t,sh:10*t,maxSh:10*t,regen:Math.floor(t/2),dmg:5+3*t,atk:1+Math.floor(t/2.5),eva:Math.min(40,4+3*t)}}
+function throneEnemy(){return{n:'The Throne\'s flagship Meridian',t:9,hull:640,maxHull:640,sh:150,maxSh:150,regen:10,dmg:32,atk:5,eva:25}}
+function genCrew(){
+  const role=pick(Object.keys(ROLES)),r=Math.random();
+  const caste=r<.3?'Cinder':r<.5?'Flint':r<.7?'Glass':r<.88?'Tide':'Zenith';
+  const lvl=caste==='Zenith'?RI(2,3):caste==='Cinder'?1:RI(1,2);
+  return{name:pick(FIRST)+' '+pick(LAST),caste,role,lvl,xp:0,cost:40+50*lvl+(caste==='Zenith'?60:caste==='Cinder'?-20:0)};
+}
+function genOrders(){
+  const ok=T.filter(t=>S.rank>=t.rk[0]&&S.rank<=t.rk[1]&&(!t.cond||t.cond(S)));
+  const ids=[];const forced=ok.find(t=>t.id==='audit');if(forced&&Math.random()<.6)ids.push('audit');
+  const rest=ok.filter(t=>t.id!=='audit').sort(()=>Math.random()-.5);
+  while(ids.length<3&&rest.length)ids.push(rest.pop().id);
+  S.orders=ids;
+}
+function refresh(){genOrders();S.pool=[genCrew(),genCrew(),genCrew()]}
+function canPromote(){return S.rank<5&&S.renown>=RANKS[S.rank+1].need}
+function adjacentToYou(i){return LINKS.some(([a,b])=>(a===i&&S.own[b]==='you')||(b===i&&S.own[a]==='you'))}
+function held(){return S.own.filter(o=>o==='you').length}
+
+/* End of a cycle: income, heat, new orders, maybe a raid. Returns lines for the report. */
+function endCycle(){
+  const lines=[];S.cycle++;const inc=income();S.credits+=inc;lines.push('Cycle '+S.cycle+' begins. Stipend and holdings pay '+inc+' credits.');
+  const z=S.crew.filter(c=>c.caste==='Zenith').length;
+  if(S.ember>=30&&z){S.sus=clamp(S.sus+z,0,100);lines.push('Your Zenith crew notice things. +'+z+' Suspicion.')}
+  else if(S.sus>0)S.sus=Math.max(0,S.sus-1);
+  refresh();
+  if(S.sus>=100){pending={type:'exposed'};return lines}
+  if(S.sus>=75)lines.push('The Inquisitors are close. Get Suspicion down.');
+  if(S.rank>=3&&!S.ended&&Math.random()<.14){
+    const c=S.own.map((o,i)=>i).filter(i=>i>0&&S.own[i]==='you'&&LINKS.some(([a,b])=>(a===i&&S.own[b]!=='you')||(b===i&&S.own[a]!=='you')));
+    if(c.length){const i=pick(c);const nb=LINKS.filter(l=>l.includes(i)).map(l=>l[0]===i?l[1]:l[0]).filter(j=>S.own[j]!=='you');pending={type:'raid',node:i,by:S.own[pick(nb)]}}
+  }
+  save();return lines;
+}
+
+/* ============ BATTLE ============ */
+function startBattle(enemy,ctx){
+  const st=stats();
+  B={e:enemy,p:{hull:st.hull,maxHull:st.hull,sh:st.sh,maxSh:st.sh},round:1,intent:'n',log:['You close with '+enemy.n+'.'],over:null,ctx,first:true};
+  renderBattle();
+}
+function hit(target,dmg,pierce){
+  let through=dmg*pierce,rest=dmg-through;const ab=Math.min(target.sh,rest);target.sh-=ab;target.hull-=rest-ab+through;
+}
+function boardChance(){const st=stats();if(st.board<=0||B.e.sh>0)return 0;return clamp(Math.round(25+st.board*5-B.e.t*8+(1-B.e.hull/B.e.maxHull)*55),5,95)}
+function battleRound(stance){
+  if(!B||B.over)return;const st=stats(),e=B.e,p=B.p,L=[];
+  if(stance==='withdraw'){B.over='lose';B.log.push('You break off and run for the lanes.');return renderBattle()}
+  let mult=st.dmgMult*(stance==='broad'?1.3:stance==='evade'?.6:stance==='shield'?.8:1);
+  if(B.first&&S.docs.includes('hammer')&&stance!=='board'){mult*=2;L.push('Hammerfall: your opening volley lands at double weight.')}
+  let eva=Math.min(80,st.eva*(stance==='broad'?.5:1)+(stance==='evade'?25:0));
+  if(stance==='board'){
+    const ch=boardChance();
+    if(Math.random()*100<ch){B.over='capture';B.log.push('Your marines take the bridge. '+e.n+' is yours.');return renderBattle()}
+    const d=8+2*e.t;p.hull-=d;L.push('The boarding party is thrown back. '+d+' hull damage in the breach.');
+  }else{
+    let tot=0,miss=0;
+    for(const w of st.weapons){if(Math.random()*100<e.eva){miss++;continue}const d=w.dmg*mult*R(.8,1.2);hit(e,d,w.pierce);tot+=d}
+    L.push('You fire: '+Math.round(tot)+' damage'+(miss?', '+miss+' volley'+(miss>1?'s':'')+' missed':'')+'.');
+  }
+  B.first=false;
+  if(e.hull<=0){e.hull=0;B.over='win';B.log.push(...L,e.n+' breaks apart.');return renderBattle()}
+  let tot=0,miss=0;const hv=B.intent==='h';
+  for(let i=0;i<e.atk;i++){if(Math.random()*100<eva){miss++;continue}const d=e.dmg*(hv?2:1)*R(.8,1.2);hit(p,d,0);tot+=d}
+  L.push((hv?'Heavy volley: ':'Enemy fires: ')+Math.round(tot)+' damage'+(miss?', '+miss+' evaded':'')+'.');
+  if(p.hull<=0){p.hull=0;B.over='lose';B.log.push(...L,'Your ship is crippled. The crew drag you to the pods.');return renderBattle()}
+  p.sh=Math.min(p.maxSh,p.sh+st.regen*(stance==='shield'?3:1));p.hull=Math.min(p.maxHull,p.hull+st.rep);
+  e.sh=Math.min(e.maxSh,e.sh+e.regen);
+  B.round++;B.intent=(B.round%3===0)?'h':'n';
+  B.log.push(...L);renderBattle();
+}
+function endBattle(){
+  const b=B;B=null;const win=b.over!=='lose';let extra='';
+  if(win){const ups=[];for(const c of S.crew){c.xp++;if(c.lvl<5&&c.xp>=c.lvl*2){c.lvl++;c.xp=0;ups.push(c.name+' is now level '+c.lvl)}}
+    if(b.over==='capture'){const v=Math.round(stdC()*.8);S.credits+=v;extra+='Prize ship sold: +'+v+' credits. '}
+    if(ups.length)extra+=ups.join('. ')+'. ';
+    b.ctx.win(extra);
+  }else{const loss=Math.round(S.credits*.1);S.credits-=loss;S.renown=Math.max(0,S.renown-3);
+    if(b.ctx.lose)b.ctx.lose('Repairs cost '+loss+' credits. −3 renown.');else report('Defeat','You limp home. Repairs cost '+loss+' credits. −3 renown.',true)}
+}
+
+/* ============ ACTIONS ============ */
+function report(title,text,cycle,extra){
+  const lines=cycle?endCycle():[];note(title+'. '+text.split('. ')[0]+'.');save();
+  modal(`<h2>${title}</h2><p>${text}</p>${extra?`<p class="gold num">${extra}</p>`:''}${lines.map(l=>`<p class="dim">${l}</p>`).join('')}<button class="btn pri" data-a="close">Continue</button>`);
+}
+const A={
+  tab(t){tab=t;sel=null;render()},
+  close(){closeModal();if(pending){const p=pending;pending=null;
+      if(p.type==='exposed')return modal(`<h2>Exposed</h2><p>The Inquisitor lays your true birth record on the table. A Cinder, wearing a dead Zenith's name, commanding a Concord warship. They do not hold a trial.</p><p class="dim">You reached ${RANKS[S.rank].n} in ${S.cycle} cycles.</p><button class="btn pri" data-a="reset">Begin again</button>`);
+      if(p.type==='raid'){const n=NODES[p.node];return modal(`<h2>${n.n} is under attack</h2><p>${HOUSES[p.by].n} has sent a squadron against your holding. If you do not answer, it falls.</p><button class="btn pri" data-a="defend:${p.node}:${p.by}">Defend it</button><button class="btn" data-a="yield:${p.node}:${p.by}">Let it go</button>`)}}
+    render()},
+  reset(){S=fresh();refresh();save();tab='bridge';closeModal();render()},
+  askReset(){modal(`<h2>Start over?</h2><p>This erases your current career.</p><button class="btn dng" data-a="reset">Erase and begin again</button><button class="btn" data-a="close">Keep playing</button>`)},
+  /* shipyard */
+  slot(i){sel=+i;render()},
+  install(id){const m=MODS[id];if(S.credits<m.cost)return;S.credits-=m.cost;S.slots[sel]={id,mk:1};save();render()},
+  upgrade(){const s=S.slots[sel],c=MODS[s.id].cost*s.mk;if(s.mk>=3||S.credits<c)return;S.credits-=c;s.mk++;save();render()},
+  sell(){const s=S.slots[sel];S.credits+=Math.round(MODS[s.id].cost*.5);S.slots[sel]=null;save();render()},
+  buyHull(id){const h=HULLS[id];if(S.credits<h.cost||S.rank<h.rank)return;S.credits-=h.cost;S.hull=id;while(S.slots.length<h.slots)S.slots.push(null);note('You take command of a '+h.n.toLowerCase()+'.');save();render()},
+  /* crew */
+  hire(i){const c=S.pool[+i];if(!c||S.credits<c.cost||S.crew.length>=stats().crewCap)return;S.credits-=c.cost;S.pool.splice(+i,1);delete c.cost;S.crew.push(c);save();render()},
+  dismiss(i){S.crew.splice(+i,1);save();render()},
+  /* college */
+  learn(id){const d=DOCS[id];if(S.credits<d.cost||S.rank<d.rank||S.docs.includes(id))return;S.credits-=d.cost;S.docs.push(id);save();render()},
+  drill(){startBattle(mkEnemy(Math.max(0,S.rank-1),'College sim drone'),{win:x=>report('Drill complete','The sim tank drains. The Preceptors post your score.',true,x+applyRw({c:.5,r:.5},true))})},
+  trial(){if(!canPromote())return;const nr=S.rank+1;const e=mkEnemy(S.rank+1,'Examiner\'s warship');
+    startBattle(e,{win:x=>{S.rank=nr;const lines=endCycle();note('Promoted to '+RANKS[nr].n+'.');save();
+      modal(`<p class="lbl">Promotion</p><h2>${RANKS[nr].n}</h2><p>${BRIEF[nr]}</p><p class="gold">${RANKS[nr].duty}</p>${x?`<p class="dim">${x}</p>`:''}${lines.map(l=>`<p class="dim">${l}</p>`).join('')}<button class="btn pri" data-a="close">Continue</button>`)},
+     lose:x=>report('Trial failed','The board declines to promote you this cycle. '+x,true)})},
+  /* orders */
+  order(id,ci){const t=T.find(t=>t.id===id),c=t.ch[+ci];
+    if(c.cost&&S.credits<Math.round(c.cost*stdC()))return;
+    if(c.out)return report(t.t,c.out.x,true,applyRw(c.out.rw));
+    if(c.check){const o=checkOdds(c.check),pass=Math.random()*100<o,r=pass?c.pass:c.fail;return report(t.t+(pass?'':' (failed)'),r.x,true,applyRw(r.rw))}
+    if(c.fight)startBattle(mkEnemy(Math.max(0,S.rank+c.fight.mod),c.fight.n),{win:x=>report(t.t,c.fight.x,true,x+applyRw(c.fight.rw,true))});
+  },
+  /* sector */
+  node(i){sel=+i;render()},
+  attack(i){i=+i;const n=NODES[i];if(!adjacentToYou(i)||S.own[i]==='you')return;if(i===10&&S.rank<5)return;
+    const e=i===10?throneEnemy():mkEnemy(n.t,HOUSES[S.own[i]].n+' garrison');
+    startBattle(e,{win:x=>{const was=S.own[i];S.own[i]='you';
+      if(i===10){S.renown+=100;save();return modal(`<p class="lbl">The Meridian Throne has fallen</p><h2>The sector is yours</h2><p>The flagship burns above the Throne. Every house in the Concord is waiting to hear what the new master of the sector will say. In the deeps, they are waiting too.</p><button class="btn pri" data-a="ending:crown">Take the crown<small>Rule the Concord as the Zenith always have.</small></button><button class="btn" data-a="ending:break" ${S.ember>=60?'':'disabled'}>Break the strata<small>${S.ember>=60?'Tell them who you are, and open the deeps.':'Needs 60 Ember. The deeps do not know your name well enough to rise.'}</small></button>`)}
+      report(n.n+' taken',HOUSES[was].n+' strikes its banner. The system pays you '+n.inc+' credits a cycle.',true,x+applyRw({c:1,r:1.4},true)+' · +'+n.inc+'/cycle')}})},
+  defend(i,by){closeModal();i=+i;startBattle(mkEnemy(NODES[i].t,HOUSES[by].n+' squadron'),{win:x=>report('Raid repelled',NODES[i].n+' holds.',false,x+applyRw({c:.6,r:.8},true)),
+    lose:x=>{S.own[i]=by;report(NODES[i].n+' lost',HOUSES[by].n+' raises its banner over the system. '+x,false)}})},
+  yield(i,by){S.own[+i]=by;closeModal();report(NODES[+i].n+' lost','You let the system go without a fight.',false)},
+  ending(k){S.ended=k;save();const txt=k==='crown'?'You take the Throne under a name that was never yours. The quotas continue. The deeps go quiet, and you learn to stop listening for them.':'You broadcast your birth record on every band: a Cinder, from Emberfall. Then you open the lift shafts. It is the last order you give as an admiral of the Concord and the first of something that has no name yet.';
+    note(k==='crown'?'You took the crown.':'You broke the strata.');
+    modal(`<p class="lbl">${k==='crown'?'Ending: The Crown':'Ending: The Open Deeps'}</p><h2>${k==='crown'?'Long may you reign':'Cinderborn'}</h2><p>${txt}</p><p class="dim">Finished in ${S.cycle} cycles with ${held()} of ${NODES.length} systems. You can keep playing to take the rest.</p><button class="btn pri" data-a="close">Continue</button>`)},
+  stance(s){battleRound(s)},
+  endBattle(){closeModal();endBattle()}
+};
+function checkOdds(ck){const bonus=roleLv(ck.role)*2,dc=11+S.rank+ck.mod;return clamp((21-(dc-bonus))*5,5,95)}
+
+/* ============ RENDER ============ */
+const $=id=>document.getElementById(id);
+function modal(html){$('modal').innerHTML='<div class="sheet" role="dialog" aria-modal="true">'+html+'</div>';$('modal').hidden=false;const b=$('modal').querySelector('button');if(b)b.focus()}
+function closeModal(){$('modal').hidden=true;$('modal').innerHTML=''}
+const pct=(a,b)=>Math.round(100*clamp(a/b,0,1));
+function bar(a,b,cls){return`<div class="bar ${cls||''}"><i style="width:${b?pct(a,b):0}%"></i></div>`}
+function render(){
+  const next=S.rank<5?RANKS[S.rank+1].need:null;
+  const tabs=[['bridge','Bridge'],['yard','Shipyard'],['crew','Crew'],['orders',S.rank?'Orders':'Assignments'],['college','College'],['sector','Sector']];
+  $('app').innerHTML=`
+  <div class="top"><h1>CINDERBORN</h1><span class="rank">${RANKS[S.rank].n} · Cycle ${S.cycle}</span></div>
+  <div class="chips">
+    <div class="chip"><span class="lbl">Credits</span><b>${S.credits}</b><span class="dim num" style="font-size:.8rem">+${income()} / cycle</span></div>
+    <div class="chip"><span class="lbl">Renown</span><b>${S.renown}${next?' / '+next:''}</b>${bar(S.renown-RANKS[S.rank].need,(next||S.renown)-RANKS[S.rank].need)}</div>
+    <div class="chip"><span class="lbl">Ember</span><b>${S.ember}</b>${bar(S.ember,100)}</div>
+    <div class="chip"><span class="lbl">Suspicion</span><b class="${S.sus>=75?'bad':''}">${S.sus}</b>${bar(S.sus,100,'b')}</div>
+  </div>
+  <nav class="tabs">${tabs.map(([k,n])=>`<button class="${tab===k?'on':''}" data-a="tab:${k}" ${k==='sector'&&S.rank<3?'disabled title="Opens at Commander"':''}>${n}</button>`).join('')}</nav>
+  <div class="pane">${({bridge:vBridge,yard:vYard,crew:vCrew,orders:vOrders,college:vCollege,sector:vSector})[tab]()}</div>`;
+}
+function vBridge(){
+  const st=stats();
+  return`<div class="card story"><p class="lbl">${RANKS[S.rank].n}'s briefing</p><p>${BRIEF[S.rank]}</p><p class="gold">${RANKS[S.rank].duty}</p>
+    ${canPromote()?`<div class="row"><button class="btn pri" data-a="tab:college">Your promotion trial is ready</button></div>`:S.rank<5?`<p class="dim">Next rank: ${RANKS[S.rank+1].n} at ${RANKS[S.rank+1].need} renown. ${RANKS[S.rank+1].duty}</p>`:''}
+    ${!st.ok?`<p class="bad">Your ship cannot launch. ${st.weapons.length?'It draws more power than it makes.':'It has no weapons.'} Fix it in the Shipyard.</p>`:''}</div>
+  <div class="grid2">
+   <div class="card"><h3>${HULLS[S.hull].n}</h3>${shipStats(st)}</div>
+   <div class="card"><h3>Ship's log</h3><div class="col">${S.log.map(l=>`<p class="dim" style="font-size:.9rem">${l}</p>`).join('')}</div></div>
+  </div>
+  <div class="card"><h3>How it works</h3><p class="dim">Every order, drill, trial and assault takes one cycle. Each cycle pays your stipend plus income from systems you hold. Renown earns promotion, and each rank opens new hulls, modules, doctrines and duties. <b class="gold">Ember</b> is how far the deeps trust you. <b class="bad">Suspicion</b> is how close the Inquisitors are. At 100 you are exposed.</p>
+   <div class="row"><button class="btn" data-a="askReset">Start a new career</button></div></div>`;
+}
+function shipStats(st){
+  return`<div class="col">
+   <div class="stat"><span>Hull</span><span>${st.hull}</span></div>
+   <div class="stat"><span>Shield / regen</span><span>${st.sh} / ${st.regen}</span></div>
+   <div class="stat"><span>Firepower per round</span><span>${st.fire}</span></div>
+   <div class="stat"><span>Evasion</span><span>${st.eva}%</span></div>
+   <div class="stat"><span>Boarding strength</span><span>${st.board}</span></div>
+   <div class="stat"><span>Power</span><span class="${st.used>st.sup?'bad':''}">${st.used} / ${st.sup}</span></div>
+   <div class="stat"><span>Crew</span><span>${S.crew.length} / ${st.crewCap}</span></div></div>`;
+}
+function vYard(){
+  const h=HULLS[S.hull],st=stats();let side;
+  if(sel==null||sel>=S.slots.length)side=`<p class="dim">Pick a bay on the hull to fit, upgrade or strip a module.</p>`;
+  else if(S.slots[sel]){const s=S.slots[sel],m=MODS[s.id],uc=m.cost*s.mk;
+    side=`<h3>${m.n} Mk ${'I'.repeat(s.mk)}</h3><p class="dim">${m.d} at Mk I. Each mark adds half again. Draws ${m.pw} power.</p>
+     <button class="btn pri" data-a="upgrade" ${s.mk>=3||S.credits<uc?'disabled':''}>${s.mk>=3?'Fully upgraded':'Upgrade to Mk '+'I'.repeat(s.mk+1)+' · '+uc+' credits'}</button>
+     <button class="btn" data-a="sell">Strip and sell · +${Math.round(m.cost*.5)} credits</button>`}
+  else side=`<h3>Fit bay ${sel+1}</h3>`+Object.entries(MODS).map(([id,m])=>`<button class="btn" data-a="install:${id}" ${S.rank<m.rank||S.credits<m.cost?'disabled':''}>${m.n} · ${m.cost} cr<small>${S.rank<m.rank?'Released at '+RANKS[m.rank].n:m.d+(m.pw?' · draws '+m.pw+' power':'')}</small></button>`).join('');
+  const order=Object.keys(HULLS),idx=order.indexOf(S.hull),nx=order[idx+1];
+  return`<div class="grid2">
+   <div class="card"><div class="row sp"><h3>${h.n}</h3><span class="num ${st.used>st.sup?'bad':'dim'}">Power ${st.used} / ${st.sup}</span></div>
+    <div class="hull" style="grid-template-columns:repeat(${h.cols},1fr)">${S.slots.map((s,i)=>s?`<button class="slot f ${MODS[s.id].k}" data-a="slot:${i}" aria-label="${MODS[s.id].n}" ${sel===i?'style="outline:2px solid var(--throne)"':''}><b>${MODS[s.id].ab}</b><small>MK ${'I'.repeat(s.mk)}</small></button>`:`<button class="slot" data-a="slot:${i}" aria-label="Empty bay" ${sel===i?'style="outline:2px solid var(--throne)"':''}><b>+</b></button>`).join('')}</div>
+    ${!st.ok?`<p class="bad">${st.weapons.length?'Over power budget. Add a reactor or strip a module before you launch.':'No weapons fitted.'}</p>`:''}
+    ${shipStats(st)}</div>
+   <div class="card">${side}</div></div>
+  ${nx?`<div class="card"><h3>Next hull: ${HULLS[nx].n}</h3><p class="dim">${HULLS[nx].slots} bays, ${HULLS[nx].hull} base hull, ${HULLS[nx].crew} crew. Your modules transfer.</p><div class="row"><button class="btn pri" data-a="buyHull:${nx}" ${S.rank<HULLS[nx].rank||S.credits<HULLS[nx].cost?'disabled':''}>${S.rank<HULLS[nx].rank?'Released at '+RANKS[HULLS[nx].rank].n:'Commission · '+HULLS[nx].cost+' credits'}</button></div></div>`:''}`;
+}
+function crewCard(c,btn){return`<div class="card"><div class="row sp"><h3>${c.name}</h3><span class="tag ${c.caste==='Cinder'?'gold':c.caste==='Zenith'?'':'dim'}">${c.caste}</span></div>
+  <p>${ROLES[c.role]} · level ${c.lvl}${c.caste==='Cinder'&&S.ember>=40&&!c.cost?' <span class="gold">(+1, fights for you)</span>':''}</p><p class="dim" style="font-size:.88rem">${ROLE_D[c.role]}. ${CASTE_D[c.caste]}</p>${btn}</div>`}
+function vCrew(){
+  const st=stats(),full=S.crew.length>=st.crewCap;
+  return`<div class="row sp"><h2>Aboard (${S.crew.length} / ${st.crewCap})</h2><span class="dim">Crew gain experience from every battle you win.</span></div>
+  <div class="grid2">${S.crew.map((c,i)=>crewCard(c,`<div class="row sp"><span class="dim num">XP ${c.xp} / ${c.lvl<5?c.lvl*2:'max'}</span><button class="btn" data-a="dismiss:${i}">Dismiss</button></div>`)).join('')||'<p class="dim">Nobody. A ship flies without crew, but badly.</p>'}</div>
+  <h2>Hiring hall</h2><p class="dim">New faces every cycle.${full?' Your berths are full. Fit Crew Berths or commission a larger hull.':''}</p>
+  <div class="grid2">${S.pool.map((c,i)=>crewCard(c,`<button class="btn pri" data-a="hire:${i}" ${full||S.credits<c.cost?'disabled':''}>Sign on · ${c.cost} credits</button>`)).join('')}</div>`;
+}
+function vOrders(){
+  const st=stats();
+  return`<h2>${S.rank?'Standing orders':'College assignments'}</h2>${!st.ok?'<p class="bad">Your ship cannot launch. Orders that end in a fight are closed until you fix it.</p>':''}
+  ${S.orders.map(id=>{const t=T.find(t=>t.id===id);return`<div class="card"><h3>${t.t}</h3><p>${t.x}</p><div class="col">${t.ch.map((c,i)=>{
+    let hint='',dis=false;
+    if(c.fight){hint='Battle';dis=!st.ok}
+    if(c.check)hint=ROLES[c.check.role]+' check · '+checkOdds(c.check)+'% chance';
+    if(c.cost){const v=Math.round(c.cost*stdC());hint='Costs '+v+' credits';dis=S.credits<v}
+    return`<button class="btn" data-a="order:${id}:${i}" ${dis?'disabled':''}>${c.t}${hint?`<small>${hint}</small>`:''}</button>`}).join('')}</div></div>`}).join('')}`;
+}
+function vCollege(){
+  const st=stats(),nr=S.rank+1;
+  return`<div class="card story"><p class="lbl">Promotion board</p>${S.rank>=5?'<p>There is no rank above Admiral. There is only the Throne.</p>':
+    `<h3>Trial for ${RANKS[nr].n}</h3><p>${canPromote()?'The board will see you. Defeat the examiner\'s warship in open combat.':'The board convenes at '+RANKS[nr].need+' renown. You have '+S.renown+'.'}</p>
+    <div class="row"><button class="btn pri" data-a="trial" ${canPromote()&&st.ok?'':'disabled'}>Stand the trial</button></div>`}</div>
+  <div class="card"><h3>Sim tank</h3><p class="dim">A safe drill against a College drone. Half pay, half renown, full crew experience.</p><div class="row"><button class="btn" data-a="drill" ${st.ok?'':'disabled'}>Run a drill</button></div></div>
+  <h2>Doctrines</h2><p class="dim">Permanent lessons. The College teaches more as you rise.</p>
+  <div class="grid2">${Object.entries(DOCS).map(([id,d])=>{const has=S.docs.includes(id);return`<div class="card"><div class="row sp"><h3>${d.n}</h3>${has?'<span class="tag ok">Learned</span>':''}</div><p class="dim">${d.d}</p>${has?'':`<button class="btn" data-a="learn:${id}" ${S.rank<d.rank||S.credits<d.cost?'disabled':''}>${S.rank<d.rank?'Taught to '+RANKS[d.rank].n+'s':'Study · '+d.cost+' credits'}</button>`}</div>`}).join('')}</div>`;
+}
+function vSector(){
+  if(S.rank<3)return`<div class="card"><p>The sector campaign opens when you make Commander.</p></div>`;
+  const st=stats();let info='<p class="dim">Select a system. You can assault any system linked to one you hold.</p>';
+  if(sel!=null&&NODES[sel]){const n=NODES[sel],o=S.own[sel],mine=o==='you',adj=adjacentToYou(sel);
+    const e=sel===10?throneEnemy():mkEnemy(n.t,'');
+    info=`<div class="row sp"><h3>${n.n}</h3><span class="tag" style="color:${HOUSES[o].c}">${HOUSES[o].n}</span></div>
+     ${mine?`<p class="dim">${sel?'Pays '+n.inc+' credits a cycle.':'Your home anchorage.'}</p>`:
+     `<p class="dim">Garrison: ${e.maxHull} hull, ${e.maxSh} shield, ${e.atk} batteries at about ${Math.round(e.dmg)} damage. Worth ${n.inc} credits a cycle.</p>
+      <div class="row"><button class="btn pri" data-a="attack:${sel}" ${adj&&st.ok&&(sel!==10||S.rank>=5)?'':'disabled'}>${sel===10&&S.rank<5?'Only an Admiral may assault the Throne':adj?'Assault':'Not linked to your territory'}</button></div>`}`}
+  return`<div class="row sp"><h2>The Meridian Sector</h2><span class="num gold">${held()} / ${NODES.length} systems held</span></div>
+  <svg class="map" viewBox="0 0 600 420" role="img" aria-label="Sector map">
+   ${LINKS.map(([a,b])=>`<line x1="${NODES[a].x}" y1="${NODES[a].y}" x2="${NODES[b].x}" y2="${NODES[b].y}" stroke="var(--line)" stroke-width="2"/>`).join('')}
+   ${NODES.map((n,i)=>`<g class="n" data-a="node:${i}"><circle cx="${n.x}" cy="${n.y}" r="${i===10?17:13}" fill="${HOUSES[S.own[i]].c}" stroke="${sel===i?'var(--fg)':'var(--bg)'}" stroke-width="3"/><text x="${n.x}" y="${n.y+(i===10?34:29)}" text-anchor="${i===10?'end':'middle'}" ${i===10?'dx="18"':''}>${n.n}</text></g>`).join('')}
+  </svg>
+  <div class="row">${Object.entries(HOUSES).map(([k,h])=>`<span class="tag" style="color:${h.c}">${h.n}</span>`).join('')}</div>
+  <div class="card">${info}</div>`;
+}
+function renderBattle(){
+  const e=B.e,p=B.p,st=stats(),bc=boardChance();
+  const side=(n,o)=>`<div class="col" style="min-width:0"><div class="row sp"><b>${n}</b></div>
+    <div class="row sp"><span class="lbl">Hull</span><span class="num">${Math.max(0,Math.round(o.hull))} / ${o.maxHull}</span></div>${bar(o.hull,o.maxHull,'big')}
+    <div class="row sp"><span class="lbl">Shield</span><span class="num">${Math.round(o.sh)} / ${o.maxSh}</span></div>${bar(o.sh,o.maxSh,'a big')}</div>`;
+  let ctl;
+  if(B.over){const w=B.over!=='lose';ctl=`<h3 class="${w?'ok':'bad'}">${B.over==='capture'?'Ship captured':w?'Victory':'Defeat'}</h3><button class="btn pri" data-a="endBattle">Continue</button>`}
+  else ctl=`<div class="intent ${B.intent==='h'?'hv':''}">${B.intent==='h'?'Their capacitors are screaming. A heavy volley is coming this round, at double damage.':'The enemy holds a standard firing pattern.'}</div>
+   <div class="stances">
+    <button class="btn" data-a="stance:broad">Broadside<small>+30% damage, half evasion</small></button>
+    <button class="btn" data-a="stance:evade">Evasive<small>+25% evasion, 60% damage</small></button>
+    <button class="btn" data-a="stance:shield" ${p.maxSh?'':'disabled'}>Shields up<small>${p.maxSh?'Triple regen, 80% damage':'No shield fitted'}</small></button>
+    <button class="btn" data-a="stance:board" ${bc?'':'disabled'}>Board<small>${bc?bc+'% to capture for a prize':st.board?'Their shields must be down':'Needs marines or barracks'}</small></button>
+   </div><button class="btn dng" data-a="stance:withdraw">Withdraw<small>Counts as a defeat</small></button>`;
+  modal(`<p class="lbl">Round ${B.round}</p><div class="grid2" style="grid-template-columns:1fr 1fr">${side('Your '+HULLS[S.hull].n.toLowerCase(),p)}${side(e.n,e)}</div>
+   <div class="log" aria-live="polite">${B.log.slice(-5).map(l=>`<div>${l}</div>`).join('')}</div>${ctl}`);
+}
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(!b||b.disabled)return;const[f,...a]=b.dataset.a.split(':');A[f](...a)});
+S=load();if(!S){S=fresh();refresh();save()}
+render();
+</script>
+<!--wrap--></body></html>
