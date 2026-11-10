@@ -15,6 +15,7 @@
   --data:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font:16px/1.5 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px}
 #app{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -65,7 +66,7 @@ button{font:600 .95rem var(--data);letter-spacing:.06em}
 .slot.p{color:var(--ember);border-color:var(--ember)} .slot.u{color:var(--throne);border-color:var(--throne)}
 .tag{font:600 .72rem var(--data);letter-spacing:.1em;text-transform:uppercase;border:1px solid currentColor;padding:1px 6px}
 /* modal sheet */
-#modal{position:fixed;inset:0;background:rgba(10,8,13,.82);display:flex;align-items:center;justify-content:center;z-index:20;
+#modal{position:fixed;inset:0;background:rgba(10,8,13,.82);display:flex;align-items:center;justify-content:center;z-index:40;
   padding:calc(12px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
 #modal .sheet{background:var(--panel);border:1px solid var(--ember);width:100%;max-width:560px;max-height:100%;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
 .log{font-size:.88rem;display:flex;flex-direction:column;gap:2px;min-height:7.5em}
@@ -74,13 +75,19 @@ button{font:600 .95rem var(--data);letter-spacing:.06em}
 .intent.hv{border-color:var(--blood);color:var(--blood);animation:pulse 1s infinite alternate}
 @keyframes pulse{to{background:rgba(217,87,74,.16)}}
 @media (prefers-reduced-motion:reduce){.intent.hv{animation:none}.bar i{transition:none}}
-.stances{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#arena{position:fixed;inset:0;z-index:30;background:#08070b;touch-action:none;user-select:none;-webkit-user-select:none}
+#arena canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#arena button{position:absolute;right:max(14px,env(safe-area-inset-right,0px));background:rgba(31,26,38,.8);color:var(--throne);border:1px solid var(--throne);width:72px;height:52px;touch-action:none}
+#bPause{top:calc(10px + env(safe-area-inset-top,0px));height:40px!important;width:48px!important}
+#bDash{bottom:calc(150px + env(safe-area-inset-bottom,0px))} #bBoard{bottom:calc(212px + env(safe-area-inset-bottom,0px))}
+#arena:not(.touch) #bDash,#arena:not(.touch) #bBoard{display:none}
 svg.map{width:100%;height:auto;background:var(--panel2);border:1px solid var(--line)}
 svg.map text{font:600 11px var(--data);fill:var(--fg);letter-spacing:.05em}
 svg.map .n{cursor:pointer}
 </style>
 <div id="app"></div>
 <div id="modal" hidden></div>
+<div id="arena" hidden><canvas id="cv"></canvas><button id="bPause" aria-label="Pause">II</button><button id="bBoard">BOARD</button><button id="bDash">DASH</button></div>
 <script>
 "use strict";
 /* ============ DATA ============ */
@@ -99,34 +106,34 @@ const BRIEF=[
  'Captains dine with admirals. The Inquisitors have started reading your service file twice.',
  'Admiral of the Concord. The Meridian Throne is one battle away, and so is the question of what you do with it.'];
 const HULLS={
- corvette:{n:'Corvette',slots:6,cols:3,hull:50,power:2,crew:2,cost:0,rank:0},
- frigate:{n:'Frigate',slots:9,cols:3,hull:90,power:3,crew:3,cost:400,rank:2},
- cruiser:{n:'Cruiser',slots:12,cols:4,hull:150,power:4,crew:4,cost:1000,rank:4},
- dreadnought:{n:'Dreadnought',slots:16,cols:4,hull:240,power:5,crew:5,cost:2200,rank:5}};
+ corvette:{n:'Corvette',speed:210,slots:6,cols:3,hull:50,power:2,crew:2,cost:0,rank:0},
+ frigate:{n:'Frigate',speed:195,slots:9,cols:3,hull:90,power:3,crew:3,cost:400,rank:2},
+ cruiser:{n:'Cruiser',speed:180,slots:12,cols:4,hull:150,power:4,crew:4,cost:1000,rank:4},
+ dreadnought:{n:'Dreadnought',speed:165,slots:16,cols:4,hull:240,power:5,crew:5,cost:2200,rank:5}};
 const MODS={
  reactor:{n:'Fusion Reactor',ab:'RX',k:'p',cost:80,pw:0,sup:6,rank:0,d:'+6 power'},
- rail:{n:'Railgun Battery',ab:'RG',k:'w',cost:60,pw:2,dmg:8,rank:0,d:'8 damage'},
- lance:{n:'Sun Lance',ab:'SL',k:'w',cost:160,pw:4,dmg:13,pierce:.5,rank:2,d:'13 damage, half ignores shields'},
+ rail:{n:'Railgun Battery',ab:'RG',k:'w',cost:60,pw:2,dmg:8,rank:0,d:'Fast slugs, 16 damage a second'},
+ lance:{n:'Sun Lance',ab:'SL',k:'w',cost:160,pw:4,dmg:13,pierce:.5,rank:2,d:'A beam every 2 seconds for 39 damage. Half ignores shields'},
  shield:{n:'Aegis Projector',ab:'AE',k:'d',cost:90,pw:3,sh:18,regen:3,rank:0,d:'+18 shield, +3 regen'},
  armor:{n:'Slag Plating',ab:'PL',k:'d',cost:50,pw:0,hull:28,rank:0,d:'+28 hull'},
- thrust:{n:'Vector Thrusters',ab:'VT',k:'u',cost:70,pw:2,eva:7,rank:0,d:'+7% evasion'},
+ thrust:{n:'Vector Thrusters',ab:'VT',k:'u',cost:70,pw:2,eva:7,rank:0,d:'+28 speed'},
  berth:{n:'Crew Berths',ab:'CB',k:'u',cost:50,pw:1,crew:1,rank:0,d:'+1 crew'},
  barracks:{n:'Marine Barracks',ab:'MB',k:'u',cost:100,pw:1,board:4,rank:1,d:'+4 boarding strength'},
- repair:{n:'Damage Control',ab:'DC',k:'d',cost:110,pw:2,rep:4,rank:1,d:'Repairs 4 hull each round'}};
+ repair:{n:'Damage Control',ab:'DC',k:'d',cost:110,pw:2,rep:4,rank:1,d:'Repairs hull steadily during battle'}};
 const MK=[0,1,1.5,2];
 const ROLES={gunner:'Gunner',pilot:'Pilot',engineer:'Engineer',marine:'Marine'};
-const ROLE_D={gunner:'+6% weapon damage per level',pilot:'+3% evasion per level',engineer:'+1 power and +1 shield regen per level',marine:'+2 boarding per level'};
+const ROLE_D={gunner:'+6% weapon damage per level',pilot:'+8 speed and a quicker dash per level',engineer:'+1 power and +1 shield regen per level',marine:'+2 boarding per level'};
 const CASTES=['Cinder','Flint','Glass','Tide','Zenith'];
 const CASTE_D={Cinder:'Deep-miners. Cheap, and they fight harder for you once Ember reaches 40.',Flint:'The soldier stratum.',Glass:'Technicians and shipwrights.',Tide:'Pilots and haulers.',Zenith:'The ruling stratum. Skilled, costly, and watchful.'};
 const DOCS={
  gunnery:{n:'Broadside Drill',d:'+15% weapon damage',rank:1,cost:120},
- helm:{n:'Slipstream Helm',d:'+8% evasion',rank:1,cost:120},
+ helm:{n:'Slipstream Helm',d:'A faster ship and a quicker dash',rank:1,cost:120},
  quarter:{n:'Quartermaster\'s Ledger',d:'+25% income each cycle',rank:2,cost:200},
  mask:{n:'The Practiced Mask',d:'Suspicion gains reduced by 30%',rank:2,cost:200},
  breach:{n:'Breach Rites',d:'+6 boarding strength',rank:3,cost:260},
  aegis:{n:'Aegis Discipline',d:'+30% shield capacity',rank:3,cost:300},
  prize:{n:'Prize Law',d:'+30% credits from won battles',rank:4,cost:400},
- hammer:{n:'Hammerfall Doctrine',d:'Your first volley of every battle deals double damage',rank:5,cost:600}};
+ hammer:{n:'Hammerfall Doctrine',d:'Double weapon damage for the first 6 seconds of every battle',rank:5,cost:600}};
 const HOUSES={you:{n:'Your banner',c:'var(--ember)'},varn:{n:'House Varn',c:'var(--varn)'},osk:{n:'House Oskerry',c:'var(--osk)'},thal:{n:'House Thal',c:'var(--thal)'},throne:{n:'The Meridian Throne',c:'var(--throne)'}};
 const NODES=[
  {n:'Kessel Anchorage',x:55,y:210,o:'you',t:0,inc:0},
@@ -141,7 +148,7 @@ const LAST=['Ashdown','Kell','Varro','Thorne','Mire','Oake','Dray','Lowe','Carro
 /* Orders. rw: c/r are multiples of the standard reward at your rank; e = Ember, s = Suspicion. */
 const T=[
  {id:'wager',rk:[0,0],t:'Sim Deck Wager',x:'Corvin Dray, heir to a Zenith shipping line, bets the whole mess hall that the scholarship cadet cannot beat him in the sim tank.',ch:[
-   {t:'Take the bet',fight:{n:'Dray\'s sim corvette',mod:0,rw:{c:1.2,r:1.5},x:'Dray climbs out of the tank white-faced. The mess hall is very quiet, then very loud.'}},
+   {t:'Take the bet',fight:{n:'Dray\'s sim corvette',mod:0,kind:'duel',rw:{c:1.2,r:1.5},x:'Dray climbs out of the tank white-faced. The mess hall is very quiet, then very loud.'}},
    {t:'Decline politely',out:{x:'You let him have his laugh. A Preceptor notes your restraint.',rw:{r:.4}}}]},
  {id:'thief',rk:[0,1],t:'The Ration Thief',x:'On night watch you find a Cinder steward filling a satchel with med-gel from the officers\' stores. Her hands are shaking. The lower decks have had no medic in a month.',ch:[
    {t:'Report her',out:{x:'She is taken below. Your record gains a commendation for vigilance.',rw:{r:1.2,e:-8}}},
@@ -160,20 +167,20 @@ const T=[
    {t:'Take the fee',out:{x:'Credits are credits.',rw:{c:1.4,r:-.3}}},
    {t:'Board and inspect the hold',out:{x:'The hold is full of Cinder families fleeing a sealed mine. You log the ship as empty and let it run.',rw:{e:12,s:7}}}]},
  {id:'beacon',rk:[1,4],t:'Distress Beacon',x:'A survey ship is breaking up inside a debris field. Its beacon is failing.',ch:[
-   {t:'Fly in after them',check:{role:'pilot',mod:0},pass:{x:'You thread the wreckage and pull eleven survivors out. The story reaches the College by morning.',rw:{r:1.6,c:.8}},fail:{x:'Debris forces you back. You recover the flight recorder and nothing else.',rw:{r:.3}}},
+   {t:'Fly in after them',fight:{n:'Debris field rescue',mod:0,kind:'collect',rw:{r:1.6,c:.8},x:'You thread the wreckage and pull every survivor out. The story reaches the College by morning.'}},
    {t:'Log it and move on',out:{x:'The beacon goes quiet an hour later.',rw:{r:.2}}}]},
  {id:'pirate',rk:[1,5],t:'Raider on the Lanes',x:'A raider has been bleeding the tithe convoys. Patrol command wants it gone.',ch:[
    {t:'Hunt it down',fight:{n:'Lane raider',mod:0,rw:{c:1.2,r:1.2},x:'The raider breaks apart across the lane. Convoy masters send you a case of something expensive.'}},
    {t:'Bait it with a decoy first',check:{role:'gunner',mod:1},pass:{x:'It takes the bait and eats a full broadside at point-blank range.',rw:{c:1.5,r:1.4}},fail:{x:'It smells the trap and runs.',rw:{r:.3}}}]},
  {id:'tithe',rk:[1,4],t:'Tithe Escort',x:'You are to escort an ore tithe to the Concord yards. Two days out, unmarked ships close in. Their leader speaks with a deep-miner\'s accent.',ch:[
-   {t:'Defend the tithe',fight:{n:'Ember cell raiders',mod:0,rw:{c:1,r:1.4,e:-8},x:'The raiders scatter. The tithe arrives whole.'}},
+   {t:'Defend the tithe',fight:{n:'Ember cell raiders',mod:0,kind:'escort',rw:{c:1,r:1.4,e:-8},x:'The raiders scatter. The tithe arrives whole.'}},
    {t:'Let your shields "fail"',out:{x:'They take the ore and leave your hull unmarked. Your report blames a reactor fault.',rw:{c:.5,e:14,s:12}}}]},
  {id:'riot',rk:[2,5],t:'Quota Riot at Deepwell',x:'Deepwell\'s miners have barricaded the lift shafts. Strike command orders you to restore the quota by any means.',ch:[
    {t:'Fire on the barricades',out:{x:'The quota resumes within the day. You do not sleep well.',rw:{r:1.8,e:-14}}},
    {t:'Send marines to take the ringleaders alive',check:{role:'marine',mod:0},pass:{x:'No shots fired. The ringleaders vanish from the brig that night, and nobody can say how.',rw:{r:1.3,e:8,s:3}},fail:{x:'The boarding goes badly and strike command takes the matter out of your hands.',rw:{r:.3}}},
    {t:'Report the mine as unsafe and withdraw',out:{x:'The inspectors will take a month to arrive. The miners will use it.',rw:{e:16,s:14}}}]},
  {id:'rival',rk:[2,5],t:'A House Raider',x:'A rival house captain has been poaching your patrol zone and wants witnesses when he humiliates you.',ch:[
-   {t:'Give him his duel',fight:{n:'House raider',mod:1,rw:{c:1.8,r:1.8},x:'His ship drifts, dark. You send a tug and your compliments.'}},
+   {t:'Give him his duel',fight:{n:'House raider',mod:1,kind:'duel',rw:{c:1.8,r:1.8},x:'His ship drifts, dark. You send a tug and your compliments.'}},
    {t:'Refuse the challenge',out:{x:'He tells the story at every table in the sector.',rw:{r:-.4}}}]},
  {id:'derelict',rk:[2,5],t:'Derelict Warship',x:'An old warship hangs dead in the dark, reactors cold for a century. Its vaults may not be empty.',ch:[
    {t:'Restart its systems',check:{role:'engineer',mod:1},pass:{x:'The vault doors grind open on racks of sealed components.',rw:{c:2.6,r:.5}},fail:{x:'The reactor will not catch. You strip what you can carry.',rw:{c:.4}}},
@@ -208,17 +215,18 @@ function elvl(c){return c.lvl+(c.caste==='Cinder'&&S.ember>=40?1:0)}
 function roleLv(r){return S.crew.filter(c=>c.role===r).reduce((a,c)=>a+elvl(c),0)}
 function stats(){
   const h=HULLS[S.hull],st={hull:h.hull,sh:0,regen:0,sup:h.power,used:0,eva:0,board:0,rep:0,crewCap:h.crew,weapons:[]};
-  for(const s of S.slots){if(!s)continue;const m=MODS[s.id],k=MK[s.mk];
+  S.slots.forEach((s,i)=>{if(!s)return;const m=MODS[s.id],k=MK[s.mk];
     st.used+=m.pw; if(m.sup)st.sup+=Math.round(m.sup*k); if(m.hull)st.hull+=Math.round(m.hull*k);
     if(m.sh){st.sh+=Math.round(m.sh*k);st.regen+=Math.round(m.regen*k)}
     if(m.eva)st.eva+=Math.round(m.eva*k); if(m.board)st.board+=Math.round(m.board*k); if(m.rep)st.rep+=Math.round(m.rep*k);
-    if(m.crew)st.crewCap+=s.mk; if(m.dmg)st.weapons.push({n:m.n,dmg:m.dmg*k,pierce:m.pierce||0});}
-  const eng=roleLv('engineer');st.sup+=eng;st.regen+=st.sh?eng:0;
+    if(m.crew)st.crewCap+=s.mk; if(m.dmg)st.weapons.push({n:m.n,id:s.id,slot:i,dmg:m.dmg*k,pierce:m.pierce||0});});
+  const eng=roleLv('engineer'),pil=roleLv('pilot'),helm=S.docs.includes('helm');st.sup+=eng;st.regen+=st.sh?eng:0;
   st.dmgMult=1+.06*roleLv('gunner')+(S.docs.includes('gunnery')?.15:0);
-  st.eva=Math.min(60,st.eva+3*roleLv('pilot')+(S.docs.includes('helm')?8:0));
+  st.speed=Math.min(360,h.speed+st.eva*4+8*pil+(helm?25:0));
+  st.dashCd=Math.max(1.1,2.6-.15*pil-(helm?.4:0));
   st.board+=2*roleLv('marine')+(S.docs.includes('breach')?6:0);
   if(S.docs.includes('aegis'))st.sh=Math.round(st.sh*1.3);
-  st.fire=Math.round(st.weapons.reduce((a,w)=>a+w.dmg,0)*st.dmgMult);
+  st.fire=Math.round(st.weapons.reduce((a,w)=>a+(w.id==='lance'?w.dmg*1.5:w.dmg*2),0)*st.dmgMult);
   st.ok=st.used<=st.sup&&st.weapons.length>0;
   return st;
 }
@@ -232,8 +240,6 @@ function applyRw(rw,battle){
   if(rw.s){let v=rw.s>0?Math.round(rw.s*(S.docs.includes('mask')?.7:1)):rw.s;S.sus=clamp(S.sus+v,0,100);out.push((v>0?'+':'')+v+' Suspicion')}
   return out.join(' · ');
 }
-function mkEnemy(t,n){return{n,t,hull:34+34*t,maxHull:34+34*t,sh:10*t,maxSh:10*t,regen:Math.floor(t/2),dmg:5+3*t,atk:1+Math.floor(t/2.5),eva:Math.min(40,4+3*t)}}
-function throneEnemy(){return{n:'The Throne\'s flagship Meridian',t:9,hull:640,maxHull:640,sh:150,maxSh:150,regen:10,dmg:32,atk:5,eva:25}}
 function genCrew(){
   const role=pick(Object.keys(ROLES)),r=Math.random();
   const caste=r<.3?'Cinder':r<.5?'Flint':r<.7?'Glass':r<.88?'Tide':'Zenith';
@@ -268,42 +274,210 @@ function endCycle(){
   save();return lines;
 }
 
-/* ============ BATTLE ============ */
-function startBattle(enemy,ctx){
-  const st=stats();
-  B={e:enemy,p:{hull:st.hull,maxHull:st.hull,sh:st.sh,maxSh:st.sh},round:1,intent:'n',log:['You close with '+enemy.n+'.'],over:null,ctx,first:true};
-  renderBattle();
+/* ============ BATTLE (real time) ============ */
+const WW=2600,WH=1800;
+function mkEnemy(t,n,kind){return{n,t,kind:kind||'skirmish'}}
+function throneEnemy(){return{n:'The Throne\'s flagship Meridian',t:9,kind:'throne'}}
+const OBJ={skirmish:'Destroy every hostile ship.',duel:'Break the enemy warship. Its escorts scatter when it dies.',escort:'Keep the tithe hauler alive until it clears the lane.',collect:'Recover every life pod before the beacon dies. Mind the rocks.',throne:'Destroy the flagship Meridian.'};
+const KIND={skirmish:'Battle',duel:'Duel',escort:'Escort run',collect:'Rescue flight',throne:'Assault'};
+function startBattle(spec,ctx){
+  B={spec,ctx,over:null};
+  const touch=matchMedia('(pointer:coarse)').matches;
+  modal(`<p class="lbl">Launch briefing · ${KIND[spec.kind]}</p><h2>${spec.n}</h2><p>${OBJ[spec.kind]}</p>
+   <p class="dim">${touch?'Left thumb steers. Right thumb aims and fires. Tap DASH to burn through incoming fire.':'WASD or arrow keys fly. Aim with the mouse and hold the button or Space to fire. Shift or right-click dashes. Esc pauses.'}</p>
+   <p class="dim">Nothing can hit you mid-dash. A red line means a heavy shell is about to come down it.${stats().board?(touch?' Hold BOARD':' Hold E')+' beside a crippled warship to capture it for prize money.':''}</p>
+   <button class="btn pri" data-a="launch">Launch</button>${ctx.noAbort?'':'<button class="btn" data-a="abort">Stand down<small>No penalty. Nothing is spent.</small></button>'}`);
 }
-function hit(target,dmg,pierce){
-  let through=dmg*pierce,rest=dmg-through;const ab=Math.min(target.sh,rest);target.sh-=ab;target.hull-=rest-ab+through;
-}
-function boardChance(){const st=stats();if(st.board<=0||B.e.sh>0)return 0;return clamp(Math.round(25+st.board*5-B.e.t*8+(1-B.e.hull/B.e.maxHull)*55),5,95)}
-function battleRound(stance){
-  if(!B||B.over)return;const st=stats(),e=B.e,p=B.p,L=[];
-  if(stance==='withdraw'){B.over='lose';B.log.push('You break off and run for the lanes.');return renderBattle()}
-  let mult=st.dmgMult*(stance==='broad'?1.3:stance==='evade'?.6:stance==='shield'?.8:1);
-  if(B.first&&S.docs.includes('hammer')&&stance!=='board'){mult*=2;L.push('Hammerfall: your opening volley lands at double weight.')}
-  let eva=Math.min(80,st.eva*(stance==='broad'?.5:1)+(stance==='evade'?25:0));
-  if(stance==='board'){
-    const ch=boardChance();
-    if(Math.random()*100<ch){B.over='capture';B.log.push('Your marines take the bridge. '+e.n+' is yours.');return renderBattle()}
-    const d=8+2*e.t;p.hull-=d;L.push('The boarding party is thrown back. '+d+' hull damage in the breach.');
-  }else{
-    let tot=0,miss=0;
-    for(const w of st.weapons){if(Math.random()*100<e.eva){miss++;continue}const d=w.dmg*mult*R(.8,1.2);hit(e,d,w.pierce);tot+=d}
-    L.push('You fire: '+Math.round(tot)+' damage'+(miss?', '+miss+' volley'+(miss>1?'s':'')+' missed':'')+'.');
+const Game=(()=>{
+  let cv,cx,W=800,H=600,dpr=1,sc=1,raf=0,last=0,g=null,bound=false;
+  const keys={},inp={mx:0,my:0,down:false,L:null,R:null,board:false,dashQ:false,touch:false,ov:null};
+  const stars=Array.from({length:130},()=>({x:Math.random(),y:Math.random(),z:R(.15,.6)}));
+  const rep=(c,n)=>Array(Math.max(0,n)).fill(c);
+  function buildWaves(s){const t=s.t,w=[];
+    if(s.kind==='duel')w.push([...rep('f',1+Math.floor(t/2)),...rep('g',Math.floor(t/3)),'c']);
+    else if(s.kind==='throne')w.push([...rep('f',5),...rep('g',3),'T']);
+    else if(s.kind==='escort')for(let i=0;i<3;i++)w.push([...rep('f',2+Math.floor(t/2)),...rep('g',Math.floor((t+i)/3))]);
+    else if(s.kind==='collect')w.push(rep('f',1+Math.floor(t/2)));
+    else{w.push([...rep('f',Math.min(7,2+t)),...rep('g',Math.min(4,Math.floor(t/2)))]);
+      if(t>=1)w.push([...rep('f',2+Math.floor(t/2)),...rep('g',Math.floor((t+1)/2)),...(t>=3?['c']:[])])}
+    return w}
+  function foe(type,t,x,y){
+    const e={type,x,y,vx:0,vy:0,ang:0,side:Math.random()<.5?1:-1,cd:R(.6,1.6),sh:0,maxSh:0,shD:0,flash:0};
+    if(type==='f'){e.hp=12+5*t;e.r=11;e.spd=175;e.dmg=3+.9*t;e.rng=230}
+    else if(type==='g'){e.hp=36+13*t;e.r=16;e.spd=115;e.dmg=4+.9*t;e.rng=340;e.burst=0;e.bt=0}
+    else if(type==='c'){e.cap=true;e.hp=110+70*t;e.r=30+t*1.5;e.spd=60;e.dmg=4+1.2*t;e.heavy=18+6*t;e.rng=400;e.maxSh=e.sh=20*t;e.hcd=R(4,6)}
+    else{e.type='c';e.cap=e.boss=true;e.hp=1900;e.r=52;e.spd=45;e.dmg=15;e.heavy=65;e.rng=430;e.maxSh=e.sh=360;e.hcd=4;e.rein=0}
+    e.maxHp=e.hp;return e}
+  function spawn(list){const a=g.conv||g.p;
+    for(const c of list){const an=R(0,6.283),d=R(560,760);let x=a.x+Math.cos(an)*d+(g.conv?350:0),y=a.y+Math.sin(an)*d;
+      const e=foe(c,g.spec.t,clamp(x,60,WW-60),clamp(y,60,WH-60));e.tc=!!g.conv&&!e.cap&&Math.random()<.6;g.foes.push(e)}}
+  function start(){
+    const st=stats(),spec=B.spec,t=spec.t;
+    g={t:0,st,spec,waves:buildWaves(spec),wi:0,waveT:1,foes:[],shots:[],fx:[],rocks:[],pods:[],conv:null,timer:0,endT:0,banner:OBJ[spec.kind],bannerT:3.5,shake:0,boardT:0,can:null,msg:'',
+      thr:st.board>0?clamp(.15+st.board*.015,0,.6):0,
+      p:{x:WW/2,y:WH/2,vx:0,vy:0,ang:0,hp:st.hull,maxHp:st.hull,sh:st.sh,maxSh:st.sh,shD:0,dashCd:0,dashT:0,dvx:0,dvy:0,cds:st.weapons.map((w,i)=>i*.12),r:10+Math.sqrt(S.slots.length)*5,rockCd:0,flash:0}};
+    const p=g.p,nr=spec.kind==='collect'?42:spec.kind==='escort'?8:11;
+    if(spec.kind==='escort'){g.conv={x:300,y:WH/2,hp:120+40*t,maxHp:120+40*t,sh:0,maxSh:0,r:26,flash:0};p.x=430;p.y=WH/2-90;g.waveT=2.5}
+    for(let i=0,n=0;n<nr&&i<400;i++){const k={x:R(80,WW-80),y:R(80,WH-80),r:R(28,68)};
+      if(Math.hypot(k.x-p.x,k.y-p.y)<k.r+170)continue;if(g.conv&&Math.abs(k.y-WH/2)<k.r+130)continue;g.rocks.push(k);n++}
+    if(spec.kind==='collect'){g.timer=70;for(let i=0;g.pods.length<7&&i<400;i++){const q={x:R(120,WW-120),y:R(120,WH-120)};
+      if(Math.hypot(q.x-p.x,q.y-p.y)<350||g.rocks.some(k=>Math.hypot(q.x-k.x,q.y-k.y)<k.r+30))continue;g.pods.push(q)}}
+    cv=$('cv');cx=cv.getContext('2d');bind();$('arena').hidden=false;$('arena').classList.toggle('touch',matchMedia('(pointer:coarse)').matches);
+    $('bBoard').hidden=!st.board;resize();inp.L=inp.R=null;inp.down=inp.board=inp.dashQ=false;for(const k in keys)keys[k]=false;
+    last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
   }
-  B.first=false;
-  if(e.hull<=0){e.hull=0;B.over='win';B.log.push(...L,e.n+' breaks apart.');return renderBattle()}
-  let tot=0,miss=0;const hv=B.intent==='h';
-  for(let i=0;i<e.atk;i++){if(Math.random()*100<eva){miss++;continue}const d=e.dmg*(hv?2:1)*R(.8,1.2);hit(p,d,0);tot+=d}
-  L.push((hv?'Heavy volley: ':'Enemy fires: ')+Math.round(tot)+' damage'+(miss?', '+miss+' evaded':'')+'.');
-  if(p.hull<=0){p.hull=0;B.over='lose';B.log.push(...L,'Your ship is crippled. The crew drag you to the pods.');return renderBattle()}
-  p.sh=Math.min(p.maxSh,p.sh+st.regen*(stance==='shield'?3:1));p.hull=Math.min(p.maxHull,p.hull+st.rep);
-  e.sh=Math.min(e.maxSh,e.sh+e.regen);
-  B.round++;B.intent=(B.round%3===0)?'h':'n';
-  B.log.push(...L);renderBattle();
-}
+  function bind(){if(bound)return;bound=true;
+    addEventListener('resize',()=>g&&resize());
+    addEventListener('keydown',e=>{if(!g)return;keys[e.code]=true;if(e.code==='Escape')pause();if(/^(Arrow|Space)/.test(e.code))e.preventDefault()});
+    addEventListener('keyup',e=>{keys[e.code]=false});
+    addEventListener('blur',()=>{for(const k in keys)keys[k]=false;inp.down=false});
+    cv.addEventListener('contextmenu',e=>e.preventDefault());
+    cv.addEventListener('pointerdown',e=>{e.preventDefault();try{cv.setPointerCapture(e.pointerId)}catch(x){}
+      if(e.pointerType==='mouse'){inp.touch=false;inp.mx=e.clientX;inp.my=e.clientY;if(e.button===2)inp.dashQ=true;else inp.down=true}
+      else{inp.touch=true;const s={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY};if(e.clientX<W/2){if(!inp.L)inp.L=s}else if(!inp.R)inp.R=s}});
+    cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){inp.mx=e.clientX;inp.my=e.clientY}else for(const s of[inp.L,inp.R])if(s&&s.id===e.pointerId){s.x=e.clientX;s.y=e.clientY}});
+    const up=e=>{if(e.pointerType==='mouse'){if(e.button!==2)inp.down=false}else{if(inp.L&&inp.L.id===e.pointerId)inp.L=null;if(inp.R&&inp.R.id===e.pointerId)inp.R=null}};
+    cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+    const hold=(id,on,off)=>{const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();on()});for(const n of['pointerup','pointercancel','pointerleave'])b.addEventListener(n,off)};
+    hold('bDash',()=>inp.dashQ=true,()=>{});hold('bBoard',()=>inp.board=true,()=>inp.board=false);$('bPause').addEventListener('click',pause);
+  }
+  function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(2,devicePixelRatio||1);cv.width=W*dpr;cv.height=H*dpr;sc=clamp(Math.min(W,H)/560,.7,1.1)}
+  function pause(){if(!g||g.paused||g.endT>0)return;g.paused=true;
+    modal(`<h2>Paused</h2><p class="dim">${OBJ[g.spec.kind]}</p><button class="btn pri" data-a="resume">Resume</button><button class="btn dng" data-a="withdraw">Withdraw<small>Counts as a defeat</small></button>`)}
+  function resume(){if(g){g.paused=false;last=performance.now()}}
+  function withdraw(){if(!g)return;B.over='lose';g.msg='You break off and run for the lanes.';finish()}
+  function end(res,msg){if(g.endT>0)return;B.over=res;g.msg=msg;g.endT=1.4;g.banner=res==='lose'?'DEFEAT':res==='capture'?'SHIP CAPTURED':'VICTORY';g.bannerT=2}
+  function finish(){cancelAnimationFrame(raf);const o=B.over,m=g.msg;g=null;$('arena').hidden=true;
+    modal(`<h2 class="${o==='lose'?'bad':'ok'}">${o==='capture'?'Ship captured':o==='lose'?'Defeat':'Victory'}</h2><p class="dim">${m}</p><button class="btn pri" data-a="endBattle">Continue</button>`)}
+  function hurt(o,d,pierce){const th=d*(pierce||0),rest=d-th,ab=Math.min(o.sh,rest);o.sh-=ab;o.hp-=rest-ab+th;o.shD=2.5;o.flash=.09}
+  function boom(x,y,r){g.fx.push({k:'boom',x,y,r,t:.45,T:.45})}
+  function mount(i){const p=g.p,h=HULLS[S.hull],rows=h.slots/h.cols,ts=11,lx=((h.cols-1)/2-i%h.cols)*ts,ly=(Math.floor(i/h.cols)-(rows-1)/2)*ts,c=Math.cos(p.ang),s=Math.sin(p.ang);
+    return{x:p.x+lx*c-ly*s,y:p.y+lx*s+ly*c}}
+  function step(dt){
+    const p=g.p,st=g.st;g.t+=dt;g.bannerT-=dt;g.shake=Math.max(0,g.shake-dt*30);
+    for(const f of g.fx)f.t-=dt;g.fx=g.fx.filter(f=>f.t>0);
+    if(g.endT>0){g.endT-=dt;if(g.endT<=0)finish();return}
+    /* input */
+    let mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),my=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0),fire=false;
+    if(inp.L){mx=(inp.L.x-inp.L.ox)/48;my=(inp.L.y-inp.L.oy)/48}
+    if(inp.ov){mx=inp.ov.mx;my=inp.ov.my}
+    let ml=Math.hypot(mx,my);if(ml>1){mx/=ml;my/=ml;ml=1}
+    if(inp.ov){p.ang=inp.ov.ang;fire=inp.ov.fire}
+    else if(inp.touch){if(inp.R){const dx=inp.R.x-inp.R.ox,dy=inp.R.y-inp.R.oy;if(Math.hypot(dx,dy)>10){p.ang=Math.atan2(dy,dx);fire=true}}else if(ml>.2)p.ang=Math.atan2(my,mx)}
+    else{p.ang=Math.atan2((inp.my-H/2)/sc,(inp.mx-W/2)/sc);fire=inp.down||keys.Space}
+    /* player motion */
+    p.dashCd-=dt;p.rockCd-=dt;p.flash-=dt;
+    if((inp.dashQ||keys.ShiftLeft||keys.ShiftRight)&&p.dashCd<=0){let dx=mx,dy=my;if(ml<.2){dx=Math.cos(p.ang);dy=Math.sin(p.ang)}const l=Math.hypot(dx,dy)||1;
+      p.dvx=dx/l*st.speed*3.4;p.dvy=dy/l*st.speed*3.4;p.dashT=.2;p.dashCd=st.dashCd}
+    inp.dashQ=false;
+    if(p.dashT>0){p.dashT-=dt;p.x+=p.dvx*dt;p.y+=p.dvy*dt;g.fx.push({k:'trail',x:p.x,y:p.y,r:p.r,t:.25,T:.25})}
+    else{const a=Math.min(1,dt*7);p.vx+=(mx*st.speed-p.vx)*a;p.vy+=(my*st.speed-p.vy)*a;p.x+=p.vx*dt;p.y+=p.vy*dt}
+    p.x=clamp(p.x,p.r,WW-p.r);p.y=clamp(p.y,p.r,WH-p.r);
+    for(const k of g.rocks){const dx=p.x-k.x,dy=p.y-k.y,d=Math.hypot(dx,dy)||1,m=k.r+p.r;if(d<m){p.x=k.x+dx/d*m;p.y=k.y+dy/d*m;if(p.rockCd<=0){hurt(p,5);p.rockCd=.6;g.shake=4}}}
+    p.shD-=dt;if(p.shD<=0)p.sh=Math.min(p.maxSh,p.sh+st.regen*1.2*dt);p.hp=Math.min(p.maxHp,p.hp+st.rep*.6*dt);
+    /* weapons */
+    const mult=st.dmgMult*(S.docs.includes('hammer')&&g.t<6?2:1),ca=Math.cos(p.ang),sa=Math.sin(p.ang);
+    st.weapons.forEach((w,i)=>{p.cds[i]-=dt;if(!fire||p.cds[i]>0)return;const m=mount(w.slot);
+      if(w.id==='lance'){let best=640,hitE=null;
+        for(const e of g.foes){const tp=(e.x-m.x)*ca+(e.y-m.y)*sa;if(tp>0&&tp<best&&Math.abs((e.x-m.x)*sa-(e.y-m.y)*ca)<e.r+5){best=tp;hitE=e}}
+        for(const k of g.rocks){const tp=(k.x-m.x)*ca+(k.y-m.y)*sa;if(tp>0&&tp<best&&Math.abs((k.x-m.x)*sa-(k.y-m.y)*ca)<k.r){best=tp;hitE=null}}
+        if(hitE)hurt(hitE,w.dmg*3*mult,w.pierce);g.fx.push({k:'beam',x:m.x,y:m.y,x2:m.x+ca*best,y2:m.y+sa*best,t:.14,T:.14});p.cds[i]=2}
+      else{g.shots.push({x:m.x,y:m.y,vx:ca*760,vy:sa*760,d:w.dmg*mult,foe:false,life:.9,r:3});p.cds[i]=.5}});
+    /* convoy */
+    if(g.conv){g.conv.x+=50*dt;g.conv.flash-=dt;if(g.conv.x>=WW-300)return end('win','The hauler clears the lane with its tithe intact.')}
+    /* hostiles */
+    for(const e of g.foes){
+      const tg=e.tc&&g.conv?g.conv:p;let dx=tg.x-e.x,dy=tg.y-e.y;const d=Math.hypot(dx,dy)||1;dx/=d;dy/=d;
+      let wx,wy;if(d>e.rng*1.15){wx=dx;wy=dy}else if(d<e.rng*.6){wx=-dx;wy=-dy}else{wx=-dy*e.side;wy=dx*e.side}
+      const a=Math.min(1,dt*2.5);e.vx+=(wx*e.spd-e.vx)*a;e.vy+=(wy*e.spd-e.vy)*a;e.x=clamp(e.x+e.vx*dt,30,WW-30);e.y=clamp(e.y+e.vy*dt,30,WH-30);
+      e.ang=Math.atan2(dy,dx);e.flash-=dt;e.cd-=dt;
+      if(e.maxSh){e.shD-=dt;if(e.shD<=0)e.sh=Math.min(e.maxSh,e.sh+e.maxSh*.05*dt)}
+      const sh=(an,spd,dm,r,hv)=>g.shots.push({x:e.x+Math.cos(an)*e.r,y:e.y+Math.sin(an)*e.r,vx:Math.cos(an)*spd,vy:Math.sin(an)*spd,d:dm,foe:true,life:2.4,r:r||3.5,hv});
+      if(e.type==='f'){if(e.cd<=0&&d<520){sh(e.ang+R(-.07,.07),330,e.dmg);e.cd=R(1,1.5)}}
+      else if(e.type==='g'){if(e.burst>0){e.bt-=dt;if(e.bt<=0){sh(e.ang+R(-.05,.05),390,e.dmg);e.burst--;e.bt=.14}}else if(e.cd<=0&&d<620){e.burst=3;e.bt=0;e.cd=2.4}}
+      else{if(e.cd<=0&&d<700){for(const o of[-.2,0,.2])sh(e.ang+o,340,e.dmg,4);e.cd=1.7}
+        e.hcd-=dt;if(!e.tele&&e.hcd<=0&&d<900)e.tele={t:1.5,a:e.ang};
+        if(e.tele){e.tele.t-=dt;if(e.tele.t>.45)e.tele.a=e.ang;if(e.tele.t<=0){sh(e.tele.a,1000,e.heavy,9,true);e.tele=null;e.hcd=e.boss?4.5:7;g.shake=6}}
+        if(e.boss&&e.rein<2&&e.hp<e.maxHp*(e.rein?.33:.66)){e.rein++;spawn([...rep('f',3),...rep('g',e.rein)]);g.banner='The Throne\'s guard answers';g.bannerT=2}}
+    }
+    /* shots */
+    for(const s of g.shots){s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;if(s.life<=0)continue;
+      if(g.rocks.some(k=>Math.hypot(s.x-k.x,s.y-k.y)<k.r)){s.life=0;continue}
+      if(s.foe){for(const o of[p,g.conv]){if(!o||(o===p&&p.dashT>0))continue;if(Math.hypot(s.x-o.x,s.y-o.y)<o.r+s.r){hurt(o,s.d);s.life=0;if(o===p)g.shake=s.hv?10:3;break}}}
+      else for(const e of g.foes)if(Math.hypot(s.x-e.x,s.y-e.y)<e.r+s.r){hurt(e,s.d);s.life=0;break}}
+    g.shots=g.shots.filter(s=>s.life>0);
+    for(const e of g.foes)if(e.hp<=0){boom(e.x,e.y,e.r*2.6);if(e.cap&&(g.spec.kind==='duel'||g.spec.kind==='throne')){g.foes=[];return end('win',g.spec.n+' breaks apart.')}}
+    g.foes=g.foes.filter(e=>e.hp>0);
+    if(p.hp<=0){p.hp=0;boom(p.x,p.y,p.r*4);return end('lose','Your ship is crippled. The crew drag you to the pods.')}
+    if(g.conv&&g.conv.hp<=0){boom(g.conv.x,g.conv.y,90);return end('lose','The hauler is lost with all hands.')}
+    /* boarding */
+    g.can=g.thr?g.foes.find(e=>e.cap&&e.sh<e.maxSh*.15+1&&e.hp/e.maxHp<=g.thr&&Math.hypot(e.x-p.x,e.y-p.y)<p.r+e.r+110):null;
+    if(g.can&&(keys.KeyE||inp.board||(inp.ov&&inp.ov.board))){g.boardT+=dt;if(g.boardT>=1.5)return end('capture','Your marines take the bridge. '+g.spec.n+' is yours.')}else g.boardT=0;
+    /* objectives */
+    if(g.pods.length){for(const q of g.pods)if(!q.got&&Math.hypot(q.x-p.x,q.y-p.y)<p.r+26){q.got=true;g.fx.push({k:'ring',x:q.x,y:q.y,r:40,t:.4,T:.4})}
+      if(g.pods.every(q=>q.got))return end('win','Every pod is aboard.');g.timer-=dt;if(g.timer<=0)return end('lose','The beacon dies. The last pods drift out of reach.')}
+    if(g.spec.kind==='escort'){g.waveT-=dt;if(g.waveT<=0&&g.wi<g.waves.length){spawn(g.waves[g.wi++]);g.waveT=11;g.banner='Raiders inbound';g.bannerT=1.6}}
+    else if(!g.foes.length){if(g.wi<g.waves.length){g.waveT-=dt;if(g.waveT<=0){spawn(g.waves[g.wi++]);g.waveT=1.4;if(g.wi>1){g.banner='Second wave';g.bannerT=1.6}}}
+      else if(g.spec.kind==='skirmish')return end('win','The last hostile breaks apart.')}
+  }
+  /* drawing */
+  const COL={w:'#d9574a',d:'#62bfae',p:'#f0a03c',u:'#e6d9b4'};
+  function poly(pts){cx.beginPath();pts.forEach((q,i)=>i?cx.lineTo(q[0],q[1]):cx.moveTo(q[0],q[1]));cx.closePath()}
+  function draw(){
+    const p=g.p;cx.setTransform(dpr,0,0,dpr,0,0);cx.fillStyle='#08070b';cx.fillRect(0,0,W,H);
+    cx.fillStyle='#8f8799';for(const s of stars){const x=(((s.x*W*2-p.x*s.z*sc)%W)+W)%W,y=(((s.y*H*2-p.y*s.z*sc)%H)+H)%H;cx.globalAlpha=s.z+.2;cx.fillRect(x,y,s.z*3,s.z*3)}cx.globalAlpha=1;
+    cx.save();cx.translate(W/2+R(-1,1)*g.shake,H/2+R(-1,1)*g.shake);cx.scale(sc,sc);cx.translate(-p.x,-p.y);
+    cx.strokeStyle='#3b3246';cx.lineWidth=3;cx.setLineDash([14,10]);cx.strokeRect(0,0,WW,WH);cx.setLineDash([]);
+    for(const k of g.rocks){cx.fillStyle='#2a2333';cx.strokeStyle='#4a4057';cx.lineWidth=2;cx.beginPath();cx.arc(k.x,k.y,k.r,0,7);cx.fill();cx.stroke()}
+    for(const q of g.pods)if(!q.got){const pu=1+Math.sin(g.t*5)*.15;cx.strokeStyle='#62bfae';cx.lineWidth=2;cx.beginPath();cx.arc(q.x,q.y,16*pu,0,7);cx.stroke();cx.fillStyle='#62bfae';cx.fillRect(q.x-5,q.y-5,10,10)}
+    if(g.conv){const c=g.conv;cx.fillStyle=c.flash>0?'#fff':'#8fa3c9';cx.fillRect(c.x-34,c.y-14,68,28);cx.fillStyle='#55648a';cx.fillRect(c.x-26,c.y-9,14,18);cx.fillRect(c.x-7,c.y-9,14,18);cx.fillRect(c.x+12,c.y-9,14,18)}
+    for(const e of g.foes){
+      if(e.tele){const lock=e.tele.t<=.45;cx.strokeStyle=lock?'#ff5a4a':'rgba(217,87,74,.55)';cx.lineWidth=lock?5:2;cx.setLineDash(lock?[]:[10,8]);cx.beginPath();cx.moveTo(e.x,e.y);cx.lineTo(e.x+Math.cos(e.tele.a)*1300,e.y+Math.sin(e.tele.a)*1300);cx.stroke();cx.setLineDash([])}
+      cx.save();cx.translate(e.x,e.y);cx.rotate(e.ang);cx.fillStyle=e.flash>0?'#fff':e.cap?'#b0483d':e.type==='g'?'#c96a3a':'#d9574a';const r=e.r;
+      if(e.type==='f')poly([[r*1.3,0],[-r,-r*.8],[-r*.5,0],[-r,r*.8]]);
+      else if(e.type==='g')poly([[r*1.2,0],[0,-r],[-r*1.1,-r*.5],[-r*1.1,r*.5],[0,r]]);
+      else poly([[r*1.5,0],[r*.7,-r*.6],[-r*1.2,-r*.7],[-r*1.5,0],[-r*1.2,r*.7],[r*.7,r*.6]]);
+      cx.fill();if(e.cap){cx.fillStyle='#2a1512';for(const o of[-.5,.2,.8]){cx.beginPath();cx.arc(r*o,0,r*.16,0,7);cx.fill()}}
+      cx.restore();
+      if(e.sh>1){cx.strokeStyle='rgba(98,191,174,'+(.25+.5*e.sh/e.maxSh)+')';cx.lineWidth=3;cx.beginPath();cx.arc(e.x,e.y,e.r*1.7,0,7);cx.stroke()}
+      if(e.type!=='f'&&!e.boss){cx.fillStyle='#2a2333';cx.fillRect(e.x-e.r,e.y-e.r*1.9-8,e.r*2,4);cx.fillStyle='#d9574a';cx.fillRect(e.x-e.r,e.y-e.r*1.9-8,e.r*2*Math.max(0,e.hp/e.maxHp),4)}
+    }
+    for(const s of g.shots){cx.fillStyle=s.foe?(s.hv?'#ff5a4a':'#ff9c7a'):'#ffe2a8';cx.beginPath();cx.arc(s.x,s.y,s.r,0,7);cx.fill()}
+    /* your ship, drawn from its fitted bays */
+    if(p.hp>0){const h=HULLS[S.hull],rows=h.slots/h.cols,ts=11,hw=h.cols*ts/2,hh=rows*ts/2;
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.ang);
+      if(Math.hypot(p.vx,p.vy)>40||p.dashT>0){cx.fillStyle='rgba(240,160,60,.8)';poly([[-hw-3,-hh*.6],[-hw-10-R(0,8)-(p.dashT>0?16:0),0],[-hw-3,hh*.6]]);cx.fill()}
+      cx.fillStyle=p.flash>0?'#fff':'#4a4057';poly([[hw+12,0],[hw,-hh-3],[-hw-3,-hh-3],[-hw-3,hh+3],[hw,hh+3]]);cx.fill();
+      S.slots.forEach((s,i)=>{cx.fillStyle=s?COL[MODS[s.id].k]:'#1f1a26';cx.fillRect(((h.cols-1)/2-i%h.cols)*ts-4.5,(Math.floor(i/h.cols)-(rows-1)/2)*ts-4.5,9,9)});
+      cx.restore();
+      if(p.sh>1){cx.strokeStyle='rgba(98,191,174,'+(.25+.55*p.sh/p.maxSh)+')';cx.lineWidth=3;cx.beginPath();cx.arc(p.x,p.y,p.r*1.9,0,7);cx.stroke()}}
+    for(const f of g.fx){const a=f.t/f.T;cx.globalAlpha=a;
+      if(f.k==='boom'){cx.fillStyle='#f0a03c';cx.beginPath();cx.arc(f.x,f.y,f.r*(1-a*.7),0,7);cx.fill()}
+      else if(f.k==='beam'){cx.strokeStyle='#ffe2a8';cx.lineWidth=5*a+1;cx.beginPath();cx.moveTo(f.x,f.y);cx.lineTo(f.x2,f.y2);cx.stroke()}
+      else if(f.k==='ring'){cx.strokeStyle='#62bfae';cx.lineWidth=3;cx.beginPath();cx.arc(f.x,f.y,f.r*(1.5-a),0,7);cx.stroke()}
+      else{cx.fillStyle='rgba(240,160,60,.35)';cx.beginPath();cx.arc(f.x,f.y,f.r,0,7);cx.fill()}}
+    cx.globalAlpha=1;cx.restore();
+    /* edge arrows */
+    const arrow=(o,c)=>{const sx=(o.x-p.x)*sc+W/2,sy=(o.y-p.y)*sc+H/2;if(sx>0&&sx<W&&sy>0&&sy<H)return;const an=Math.atan2(sy-H/2,sx-W/2),ex=clamp(sx,22,W-22),ey=clamp(sy,70,H-22);
+      cx.save();cx.translate(ex,ey);cx.rotate(an);cx.fillStyle=c;poly([[9,0],[-6,-6],[-6,6]]);cx.fill();cx.restore()};
+    g.foes.forEach(e=>arrow(e,e.cap?'#ff5a4a':'#d9574a'));g.pods.forEach(q=>q.got||arrow(q,'#62bfae'));if(g.conv)arrow(g.conv,'#8fa3c9');
+    /* HUD */
+    const top=12+(parseFloat(getComputedStyle(document.documentElement).paddingTop)||0),F='"Barlow Condensed","Arial Narrow",sans-serif';
+    const hb=(y,v,m,c,l)=>{cx.fillStyle='rgba(31,26,38,.85)';cx.fillRect(14,y,150,12);cx.fillStyle=c;cx.fillRect(14,y,150*clamp(v/(m||1),0,1),12);cx.fillStyle='#ece4d6';cx.font='600 11px '+F;cx.textAlign='left';cx.fillText(l,170,y+10)};
+    hb(top,p.hp,p.maxHp,'#f0a03c','HULL '+Math.ceil(p.hp));if(p.maxSh)hb(top+17,p.sh,p.maxSh,'#62bfae','SHIELD '+Math.round(p.sh));
+    hb(top+(p.maxSh?34:17),g.st.dashCd-Math.max(0,p.dashCd),g.st.dashCd,p.dashCd<=0?'#e6d9b4':'#6d6478','DASH');
+    cx.textAlign='center';cx.font='600 14px '+F;cx.fillStyle='#e6d9b4';
+    let o=g.spec.kind==='collect'?`PODS ${g.pods.filter(q=>q.got).length} / ${g.pods.length}  ·  ${Math.ceil(g.timer)}s`:g.spec.kind==='escort'?`HAULER ${Math.round(100*g.conv.hp/g.conv.maxHp)}%  ·  ${Math.round(100*(g.conv.x-300)/(WW-600))}% OF LANE`:`HOSTILES ${g.foes.length}`;
+    cx.fillText(o,W/2,top+62);
+    const bs=g.foes.find(e=>e.cap);if(bs){const bw=Math.min(320,W-120);cx.fillStyle='rgba(31,26,38,.85)';cx.fillRect(W/2-bw/2,top+70,bw,8);cx.fillStyle='#d9574a';cx.fillRect(W/2-bw/2,top+70,bw*bs.hp/bs.maxHp,8);if(bs.maxSh){cx.fillStyle='#62bfae';cx.fillRect(W/2-bw/2,top+80,bw*bs.sh/bs.maxSh,4)}}
+    if(g.can){cx.font='600 16px '+F;cx.fillStyle='#f0a03c';cx.fillText(inp.touch?'HOLD BOARD TO CAPTURE':'HOLD E TO BOARD',W/2,H*.68);cx.fillStyle='rgba(31,26,38,.85)';cx.fillRect(W/2-80,H*.68+8,160,6);cx.fillStyle='#f0a03c';cx.fillRect(W/2-80,H*.68+8,160*g.boardT/1.5,6)}
+    if(g.bannerT>0){cx.globalAlpha=Math.min(1,g.bannerT);cx.font='800 '+(g.endT>0?30:17)+'px Cinzel,Georgia,serif';cx.fillStyle=B&&B.over==='lose'?'#d9574a':'#f0a03c';
+      const words=g.banner.split(' ');let line='',y=H*.3;for(const w of words){if(cx.measureText(line+w).width>W-40){cx.fillText(line,W/2,y);y+=24;line=''}line+=w+' '}cx.fillText(line,W/2,y);cx.globalAlpha=1}
+    for(const s of[inp.L,inp.R])if(s){cx.strokeStyle='rgba(236,228,214,.35)';cx.lineWidth=2;cx.beginPath();cx.arc(s.ox,s.oy,48,0,7);cx.stroke();const dx=s.x-s.ox,dy=s.y-s.oy,l=Math.max(48,Math.hypot(dx,dy));cx.fillStyle='rgba(240,160,60,.6)';cx.beginPath();cx.arc(s.ox+dx/l*48,s.oy+dy/l*48,20,0,7);cx.fill()}
+  }
+  function loop(now){if(!g)return;const dt=Math.min(.033,(now-last)/1000);last=now;if(!g.paused)step(dt);if(g){draw();raf=requestAnimationFrame(loop)}}
+  return{start,resume,withdraw,step:dt=>g&&step(dt),inp,get g(){return g}};
+})();
 function endBattle(){
   const b=B;B=null;const win=b.over!=='lose';let extra='';
   if(win){const ups=[];for(const c of S.crew){c.xp++;if(c.lvl<5&&c.xp>=c.lvl*2){c.lvl++;c.xp=0;ups.push(c.name+' is now level '+c.lvl)}}
@@ -339,7 +513,7 @@ const A={
   /* college */
   learn(id){const d=DOCS[id];if(S.credits<d.cost||S.rank<d.rank||S.docs.includes(id))return;S.credits-=d.cost;S.docs.push(id);save();render()},
   drill(){startBattle(mkEnemy(Math.max(0,S.rank-1),'College sim drone'),{win:x=>report('Drill complete','The sim tank drains. The Preceptors post your score.',true,x+applyRw({c:.5,r:.5},true))})},
-  trial(){if(!canPromote())return;const nr=S.rank+1;const e=mkEnemy(S.rank+1,'Examiner\'s warship');
+  trial(){if(!canPromote())return;const nr=S.rank+1;const e=mkEnemy(S.rank+1,'Examiner\'s warship','duel');
     startBattle(e,{win:x=>{S.rank=nr;const lines=endCycle();note('Promoted to '+RANKS[nr].n+'.');save();
       modal(`<p class="lbl">Promotion</p><h2>${RANKS[nr].n}</h2><p>${BRIEF[nr]}</p><p class="gold">${RANKS[nr].duty}</p>${x?`<p class="dim">${x}</p>`:''}${lines.map(l=>`<p class="dim">${l}</p>`).join('')}<button class="btn pri" data-a="close">Continue</button>`)},
      lose:x=>report('Trial failed','The board declines to promote you this cycle. '+x,true)})},
@@ -348,22 +522,25 @@ const A={
     if(c.cost&&S.credits<Math.round(c.cost*stdC()))return;
     if(c.out)return report(t.t,c.out.x,true,applyRw(c.out.rw));
     if(c.check){const o=checkOdds(c.check),pass=Math.random()*100<o,r=pass?c.pass:c.fail;return report(t.t+(pass?'':' (failed)'),r.x,true,applyRw(r.rw))}
-    if(c.fight)startBattle(mkEnemy(Math.max(0,S.rank+c.fight.mod),c.fight.n),{win:x=>report(t.t,c.fight.x,true,x+applyRw(c.fight.rw,true))});
+    if(c.fight)startBattle(mkEnemy(Math.max(0,S.rank+c.fight.mod),c.fight.n,c.fight.kind),{win:x=>report(t.t,c.fight.x,true,x+applyRw(c.fight.rw,true))});
   },
   /* sector */
   node(i){sel=+i;render()},
   attack(i){i=+i;const n=NODES[i];if(!adjacentToYou(i)||S.own[i]==='you')return;if(i===10&&S.rank<5)return;
-    const e=i===10?throneEnemy():mkEnemy(n.t,HOUSES[S.own[i]].n+' garrison');
+    const e=i===10?throneEnemy():mkEnemy(n.t,HOUSES[S.own[i]].n+' garrison','duel');
     startBattle(e,{win:x=>{const was=S.own[i];S.own[i]='you';
       if(i===10){S.renown+=100;save();return modal(`<p class="lbl">The Meridian Throne has fallen</p><h2>The sector is yours</h2><p>The flagship burns above the Throne. Every house in the Concord is waiting to hear what the new master of the sector will say. In the deeps, they are waiting too.</p><button class="btn pri" data-a="ending:crown">Take the crown<small>Rule the Concord as the Zenith always have.</small></button><button class="btn" data-a="ending:break" ${S.ember>=60?'':'disabled'}>Break the strata<small>${S.ember>=60?'Tell them who you are, and open the deeps.':'Needs 60 Ember. The deeps do not know your name well enough to rise.'}</small></button>`)}
       report(n.n+' taken',HOUSES[was].n+' strikes its banner. The system pays you '+n.inc+' credits a cycle.',true,x+applyRw({c:1,r:1.4},true)+' · +'+n.inc+'/cycle')}})},
-  defend(i,by){closeModal();i=+i;startBattle(mkEnemy(NODES[i].t,HOUSES[by].n+' squadron'),{win:x=>report('Raid repelled',NODES[i].n+' holds.',false,x+applyRw({c:.6,r:.8},true)),
+  defend(i,by){closeModal();i=+i;startBattle(mkEnemy(NODES[i].t,HOUSES[by].n+' squadron'),{noAbort:true,win:x=>report('Raid repelled',NODES[i].n+' holds.',false,x+applyRw({c:.6,r:.8},true)),
     lose:x=>{S.own[i]=by;report(NODES[i].n+' lost',HOUSES[by].n+' raises its banner over the system. '+x,false)}})},
   yield(i,by){S.own[+i]=by;closeModal();report(NODES[+i].n+' lost','You let the system go without a fight.',false)},
   ending(k){S.ended=k;save();const txt=k==='crown'?'You take the Throne under a name that was never yours. The quotas continue. The deeps go quiet, and you learn to stop listening for them.':'You broadcast your birth record on every band: a Cinder, from Emberfall. Then you open the lift shafts. It is the last order you give as an admiral of the Concord and the first of something that has no name yet.';
     note(k==='crown'?'You took the crown.':'You broke the strata.');
     modal(`<p class="lbl">${k==='crown'?'Ending: The Crown':'Ending: The Open Deeps'}</p><h2>${k==='crown'?'Long may you reign':'Cinderborn'}</h2><p>${txt}</p><p class="dim">Finished in ${S.cycle} cycles with ${held()} of ${NODES.length} systems. You can keep playing to take the rest.</p><button class="btn pri" data-a="close">Continue</button>`)},
-  stance(s){battleRound(s)},
+  launch(){closeModal();Game.start()},
+  abort(){B=null;closeModal();render()},
+  resume(){closeModal();Game.resume()},
+  withdraw(){closeModal();Game.withdraw()},
   endBattle(){closeModal();endBattle()}
 };
 function checkOdds(ck){const bonus=roleLv(ck.role)*2,dc=11+S.rank+ck.mod;return clamp((21-(dc-bonus))*5,5,95)}
@@ -397,15 +574,15 @@ function vBridge(){
    <div class="card"><h3>${HULLS[S.hull].n}</h3>${shipStats(st)}</div>
    <div class="card"><h3>Ship's log</h3><div class="col">${S.log.map(l=>`<p class="dim" style="font-size:.9rem">${l}</p>`).join('')}</div></div>
   </div>
-  <div class="card"><h3>How it works</h3><p class="dim">Every order, drill, trial and assault takes one cycle. Each cycle pays your stipend plus income from systems you hold. Renown earns promotion, and each rank opens new hulls, modules, doctrines and duties. <b class="gold">Ember</b> is how far the deeps trust you. <b class="bad">Suspicion</b> is how close the Inquisitors are. At 100 you are exposed.</p>
+  <div class="card"><h3>How it works</h3><p class="dim">You fly every battle yourself, in the ship you fit in the Shipyard. Every order, drill, trial and assault takes one cycle. Each cycle pays your stipend plus income from systems you hold. Renown earns promotion, and each rank opens new hulls, modules, doctrines and duties. <b class="gold">Ember</b> is how far the deeps trust you. <b class="bad">Suspicion</b> is how close the Inquisitors are. At 100 you are exposed.</p>
    <div class="row"><button class="btn" data-a="askReset">Start a new career</button></div></div>`;
 }
 function shipStats(st){
   return`<div class="col">
    <div class="stat"><span>Hull</span><span>${st.hull}</span></div>
    <div class="stat"><span>Shield / regen</span><span>${st.sh} / ${st.regen}</span></div>
-   <div class="stat"><span>Firepower per round</span><span>${st.fire}</span></div>
-   <div class="stat"><span>Evasion</span><span>${st.eva}%</span></div>
+   <div class="stat"><span>Firepower per second</span><span>${st.fire}</span></div>
+   <div class="stat"><span>Speed</span><span>${st.speed}</span></div>
    <div class="stat"><span>Boarding strength</span><span>${st.board}</span></div>
    <div class="stat"><span>Power</span><span class="${st.used>st.sup?'bad':''}">${st.used} / ${st.sup}</span></div>
    <div class="stat"><span>Crew</span><span>${S.crew.length} / ${st.crewCap}</span></div></div>`;
@@ -441,7 +618,7 @@ function vOrders(){
   return`<h2>${S.rank?'Standing orders':'College assignments'}</h2>${!st.ok?'<p class="bad">Your ship cannot launch. Orders that end in a fight are closed until you fix it.</p>':''}
   ${S.orders.map(id=>{const t=T.find(t=>t.id===id);return`<div class="card"><h3>${t.t}</h3><p>${t.x}</p><div class="col">${t.ch.map((c,i)=>{
     let hint='',dis=false;
-    if(c.fight){hint='Battle';dis=!st.ok}
+    if(c.fight){hint=KIND[c.fight.kind||'skirmish']+' · you fly it';dis=!st.ok}
     if(c.check)hint=ROLES[c.check.role]+' check · '+checkOdds(c.check)+'% chance';
     if(c.cost){const v=Math.round(c.cost*stdC());hint='Costs '+v+' credits';dis=S.credits<v}
     return`<button class="btn" data-a="order:${id}:${i}" ${dis?'disabled':''}>${c.t}${hint?`<small>${hint}</small>`:''}</button>`}).join('')}</div></div>`}).join('')}`;
@@ -451,7 +628,7 @@ function vCollege(){
   return`<div class="card story"><p class="lbl">Promotion board</p>${S.rank>=5?'<p>There is no rank above Admiral. There is only the Throne.</p>':
     `<h3>Trial for ${RANKS[nr].n}</h3><p>${canPromote()?'The board will see you. Defeat the examiner\'s warship in open combat.':'The board convenes at '+RANKS[nr].need+' renown. You have '+S.renown+'.'}</p>
     <div class="row"><button class="btn pri" data-a="trial" ${canPromote()&&st.ok?'':'disabled'}>Stand the trial</button></div>`}</div>
-  <div class="card"><h3>Sim tank</h3><p class="dim">A safe drill against a College drone. Half pay, half renown, full crew experience.</p><div class="row"><button class="btn" data-a="drill" ${st.ok?'':'disabled'}>Run a drill</button></div></div>
+  <div class="card"><h3>Sim tank</h3><p class="dim">Fly a live drill against College drones. Half pay, half renown, full crew experience.</p><div class="row"><button class="btn" data-a="drill" ${st.ok?'':'disabled'}>Run a drill</button></div></div>
   <h2>Doctrines</h2><p class="dim">Permanent lessons. The College teaches more as you rise.</p>
   <div class="grid2">${Object.entries(DOCS).map(([id,d])=>{const has=S.docs.includes(id);return`<div class="card"><div class="row sp"><h3>${d.n}</h3>${has?'<span class="tag ok">Learned</span>':''}</div><p class="dim">${d.d}</p>${has?'':`<button class="btn" data-a="learn:${id}" ${S.rank<d.rank||S.credits<d.cost?'disabled':''}>${S.rank<d.rank?'Taught to '+RANKS[d.rank].n+'s':'Study · '+d.cost+' credits'}</button>`}</div>`}).join('')}</div>`;
 }
@@ -459,10 +636,9 @@ function vSector(){
   if(S.rank<3)return`<div class="card"><p>The sector campaign opens when you make Commander.</p></div>`;
   const st=stats();let info='<p class="dim">Select a system. You can assault any system linked to one you hold.</p>';
   if(sel!=null&&NODES[sel]){const n=NODES[sel],o=S.own[sel],mine=o==='you',adj=adjacentToYou(sel);
-    const e=sel===10?throneEnemy():mkEnemy(n.t,'');
     info=`<div class="row sp"><h3>${n.n}</h3><span class="tag" style="color:${HOUSES[o].c}">${HOUSES[o].n}</span></div>
      ${mine?`<p class="dim">${sel?'Pays '+n.inc+' credits a cycle.':'Your home anchorage.'}</p>`:
-     `<p class="dim">Garrison: ${e.maxHull} hull, ${e.maxSh} shield, ${e.atk} batteries at about ${Math.round(e.dmg)} damage. Worth ${n.inc} credits a cycle.</p>
+     `<p class="dim">${sel===10?'The flagship Meridian and the Throne\'s guard.':'Garrison: a strength '+n.t+' warship with '+(1+Math.floor(n.t/2)+Math.floor(n.t/3))+' escorts.'} Worth ${n.inc} credits a cycle.</p>
       <div class="row"><button class="btn pri" data-a="attack:${sel}" ${adj&&st.ok&&(sel!==10||S.rank>=5)?'':'disabled'}>${sel===10&&S.rank<5?'Only an Admiral may assault the Throne':adj?'Assault':'Not linked to your territory'}</button></div>`}`}
   return`<div class="row sp"><h2>The Meridian Sector</h2><span class="num gold">${held()} / ${NODES.length} systems held</span></div>
   <svg class="map" viewBox="0 0 600 420" role="img" aria-label="Sector map">
@@ -471,23 +647,6 @@ function vSector(){
   </svg>
   <div class="row">${Object.entries(HOUSES).map(([k,h])=>`<span class="tag" style="color:${h.c}">${h.n}</span>`).join('')}</div>
   <div class="card">${info}</div>`;
-}
-function renderBattle(){
-  const e=B.e,p=B.p,st=stats(),bc=boardChance();
-  const side=(n,o)=>`<div class="col" style="min-width:0"><div class="row sp"><b>${n}</b></div>
-    <div class="row sp"><span class="lbl">Hull</span><span class="num">${Math.max(0,Math.round(o.hull))} / ${o.maxHull}</span></div>${bar(o.hull,o.maxHull,'big')}
-    <div class="row sp"><span class="lbl">Shield</span><span class="num">${Math.round(o.sh)} / ${o.maxSh}</span></div>${bar(o.sh,o.maxSh,'a big')}</div>`;
-  let ctl;
-  if(B.over){const w=B.over!=='lose';ctl=`<h3 class="${w?'ok':'bad'}">${B.over==='capture'?'Ship captured':w?'Victory':'Defeat'}</h3><button class="btn pri" data-a="endBattle">Continue</button>`}
-  else ctl=`<div class="intent ${B.intent==='h'?'hv':''}">${B.intent==='h'?'Their capacitors are screaming. A heavy volley is coming this round, at double damage.':'The enemy holds a standard firing pattern.'}</div>
-   <div class="stances">
-    <button class="btn" data-a="stance:broad">Broadside<small>+30% damage, half evasion</small></button>
-    <button class="btn" data-a="stance:evade">Evasive<small>+25% evasion, 60% damage</small></button>
-    <button class="btn" data-a="stance:shield" ${p.maxSh?'':'disabled'}>Shields up<small>${p.maxSh?'Triple regen, 80% damage':'No shield fitted'}</small></button>
-    <button class="btn" data-a="stance:board" ${bc?'':'disabled'}>Board<small>${bc?bc+'% to capture for a prize':st.board?'Their shields must be down':'Needs marines or barracks'}</small></button>
-   </div><button class="btn dng" data-a="stance:withdraw">Withdraw<small>Counts as a defeat</small></button>`;
-  modal(`<p class="lbl">Round ${B.round}</p><div class="grid2" style="grid-template-columns:1fr 1fr">${side('Your '+HULLS[S.hull].n.toLowerCase(),p)}${side(e.n,e)}</div>
-   <div class="log" aria-live="polite">${B.log.slice(-5).map(l=>`<div>${l}</div>`).join('')}</div>${ctl}`);
 }
 document.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(!b||b.disabled)return;const[f,...a]=b.dataset.a.split(':');A[f](...a)});
 S=load();if(!S){S=fresh();refresh();save()}
